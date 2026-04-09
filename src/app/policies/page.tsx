@@ -128,7 +128,10 @@ export default async function PoliciesPage() {
                       <FileText size={13} /> Megtekintés
                     </a>
                     {/* BEÁGYAZÓ KÓD */}
-                    <CopyEmbedButton policyId={policy.id} />
+                    <button
+                      className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors">
+                        <Code size={13} /> Beágyazó kód
+                      </button>
                     {/* ÚJ GENERÁLÁS ERRE A FORRÁSRA */}
                     <form action={generatePolicy}>
                       <input type="hidden" name="websiteId" value={policy.website_id} />
@@ -190,18 +193,5 @@ export default async function PoliciesPage() {
         </section>
       )}
     </div>
-  );
-}
-
-// Kliens komponens a vágólapra másoláshoz
-function CopyEmbedButton({ policyId }: { policyId: string }) {
-  return (
-    <button
-      type="button"
-      onClick={() => {}}
-      className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
-    >
-      <Code size={13} /> Beágyazó kód
-    </button>
   );
 }
