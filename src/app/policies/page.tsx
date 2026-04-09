@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
-import { generatePolicy, deletePolicy } from "@/app/actions";
-import { Button } from "@/components/ui/button";
-import { FileText, Download, Code, Clock, Plus } from "lucide-react";
+import { generatePolicy, deletePolicy, restorePolicy } from "@/app/actions";
+import { FileText, Clock, Plus, Filter, RotateCcw, RefreshCw, Trash2 } from "lucide-react";
 
 function formatDate(d: string | null) {
   if (!d) return "—";
@@ -11,7 +10,15 @@ function formatDate(d: string | null) {
   }).format(new Date(d));
 }
 
-export default async function PoliciesPage() {
+export default async function PoliciesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ site?: string; show?: string }>;
+}) {
+  const params = await searchParams;
+  const filterSite = params.site || 'all';
+  const showArchived = params.show === 'archived';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -39,8 +46,19 @@ export default async function PoliciesPage() {
     }
   }
 
-  const currentPolicies = policies.filter(p => p.status === 'current');
-  const archivedPolicies = policies.filter(p => p.status === 'archived');
+  // Szűrés
+  const filteredPolicies = filterSite === 'all'
+    ? policies
+    : policies.filter(p => p.website_id === filterSite);
+
+  const currentPolicies = filteredPolicies.filter(p => p.status === 'current');
+  const archivedPolicies = filteredPolicies.filter(p => p.status === 'archived');
+
+  function getSiteName(websiteId: string) {
+    const w = websites.find(x => x.id === websiteId);
+    if (!w) return 'Ismeretlen';
+    return w.status === 'offline' ? w.url : w.url.replace(/^https?:\/\//, '');
+  }
 
   return (
     <div className="w-full space-y-8 font-sans">
@@ -54,7 +72,6 @@ export default async function PoliciesPage() {
           </p>
         </div>
 
-        {/* GENERÁLÁS GOMB + FORRÁS VÁLASZTÓ */}
         {websites.length > 0 && (
           <form action={generatePolicy} className="flex items-center gap-3">
             <select
@@ -67,15 +84,70 @@ export default async function PoliciesPage() {
                 </option>
               ))}
             </select>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 font-bold">
-              <Plus size={16} />
-              Tájékoztató generálása
-            </Button>
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition-colors"
+            >
+              <Plus size={15} />
+              Új tájékoztató generálása
+            </button>
           </form>
         )}
       </header>
 
-      {/* HA NINCS MÉG SEMMI */}
+      {/* SZŰRŐ SÁV */}
+      {websites.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest mr-2">
+            <Filter size={12} /> Szűrés
+          </div>
+          <a
+            href="/policies"
+            className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors ${
+              filterSite === 'all'
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            Összes
+          </a>
+          {websites.map(w => {
+            const name = w.status === 'offline' ? w.url : w.url.replace(/^https?:\/\//, '');
+            const active = filterSite === w.id;
+            return (
+              <a
+                key={w.id}
+                href={`/policies?site=${w.id}${showArchived ? '&show=archived' : ''}`}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors ${
+                  active
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
+              >
+                {name}
+              </a>
+            );
+          })}
+
+          {/* Archivált toggle */}
+          <a
+            href={showArchived
+              ? `/policies${filterSite !== 'all' ? `?site=${filterSite}` : ''}`
+              : `/policies?${filterSite !== 'all' ? `site=${filterSite}&` : ''}show=archived`
+            }
+            className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors ${
+              showArchived
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <Clock size={12} />
+            {showArchived ? 'Archiváltak elrejtése' : 'Archiváltak mutatása'}
+          </a>
+        </div>
+      )}
+
+      {/* ÜRES ÁLLAPOT */}
       {policies.length === 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center shadow-sm">
           <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
@@ -83,7 +155,7 @@ export default async function PoliciesPage() {
           </div>
           <h3 className="text-lg font-bold text-slate-700 mb-2">Még nincs generált tájékoztató</h3>
           <p className="text-[14px] text-slate-500 max-w-md mx-auto">
-            Válassz ki egy forrást fent, és kattints a "Tájékoztató generálása" gombra. A rendszer automatikusan összerakja a GDPR tájékoztatót a rögzített adatok alapján.
+            Válassz ki egy forrást fent, és kattints az „Új tájékoztató generálása" gombra.
           </p>
         </div>
       )}
@@ -93,11 +165,7 @@ export default async function PoliciesPage() {
         <section className="space-y-4">
           <h2 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">Aktuális verziók</h2>
           {currentPolicies.map(policy => {
-            const website = websites.find(w => w.id === policy.website_id);
-            const siteName = website
-              ? (website.status === 'offline' ? website.url : website.url.replace(/^https?:\/\//, ''))
-              : 'Ismeretlen forrás';
-
+            const siteName = getSiteName(policy.website_id);
             return (
               <div key={policy.id} className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
                 <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -107,7 +175,7 @@ export default async function PoliciesPage() {
                     </div>
                     <div>
                       <div className="font-bold text-[15px] text-slate-800">{siteName}</div>
-                      <div className="flex items-center gap-3 mt-1">
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-md">
                           v{policy.version}
                         </span>
@@ -120,26 +188,28 @@ export default async function PoliciesPage() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {/* ELŐNÉZET */}
                     <a
                       href={`/policies/${policy.id}`}
                       className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
                     >
                       <FileText size={13} /> Megtekintés
                     </a>
-                    {/* BEÁGYAZÓ KÓD */}
-                    <button
-                      className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors">
-                        <Code size={13} /> Beágyazó kód
-                      </button>
-                    {/* ÚJ GENERÁLÁS ERRE A FORRÁSRA */}
                     <form action={generatePolicy}>
                       <input type="hidden" name="websiteId" value={policy.website_id} />
                       <button
                         type="submit"
                         className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
                       >
-                        Frissítés
+                        <RefreshCw size={13} /> Frissítés
+                      </button>
+                    </form>
+                    <form action={deletePolicy}>
+                      <input type="hidden" name="id" value={policy.id} />
+                      <button
+                        type="submit"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-600 transition-colors"
+                      >
+                        <Trash2 size={13} /> Törlés
                       </button>
                     </form>
                   </div>
@@ -151,7 +221,7 @@ export default async function PoliciesPage() {
       )}
 
       {/* ARCHIVÁLT VERZIÓK */}
-      {archivedPolicies.length > 0 && (
+      {showArchived && archivedPolicies.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">Archivált verziók</h2>
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
@@ -161,37 +231,50 @@ export default async function PoliciesPage() {
                   <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Forrás</th>
                   <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Verzió</th>
                   <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Érvényesség</th>
-                  <th className="px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Művelet</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Műveletek</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {archivedPolicies.map(policy => {
-                  const website = websites.find(w => w.id === policy.website_id);
-                  const siteName = website
-                    ? (website.status === 'offline' ? website.url : website.url.replace(/^https?:\/\//, ''))
-                    : 'Ismeretlen';
-                  return (
-                    <tr key={policy.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-5 py-3 font-medium text-slate-700">{siteName}</td>
-                      <td className="px-5 py-3">
-                        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">v{policy.version}</span>
-                      </td>
-                      <td className="px-5 py-3 text-slate-500 text-[13px]">
-                        {formatDate(policy.valid_from)} – {formatDate(policy.valid_to)}
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <a href={`/policies/${policy.id}`} className="text-blue-600 hover:underline text-[12px] font-semibold">
-                          Megnyitás
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {archivedPolicies.map(policy => (
+                  <tr key={policy.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3 font-medium text-slate-700">{getSiteName(policy.website_id)}</td>
+                    <td className="px-5 py-3">
+                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">v{policy.version}</span>
+                    </td>
+                    <td className="px-5 py-3 text-slate-500 text-[13px]">
+                      {formatDate(policy.valid_from)} – {formatDate(policy.valid_to)}
+                    </td>
+                    <td className="px-5 py-3 text-right flex items-center justify-end gap-2">
+                      <a
+                        href={`/policies/${policy.id}`}
+                        className="text-blue-600 hover:underline text-[12px] font-semibold"
+                      >
+                        Megnyitás
+                      </a>
+                      <form action={restorePolicy}>
+                        <input type="hidden" name="id" value={policy.id} />
+                        <button
+                          type="submit"
+                          className="flex items-center gap-1 text-[12px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          <RotateCcw size={11} /> Visszaállítás
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </section>
       )}
+
+      {showArchived && archivedPolicies.length === 0 && policies.length > 0 && (
+        <div className="text-center py-8 text-[14px] text-slate-400 font-medium">
+          Nincsenek archivált verziók ehhez a szűrőhöz.
+        </div>
+      )}
+
     </div>
   );
 }

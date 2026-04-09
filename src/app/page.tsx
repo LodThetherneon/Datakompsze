@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Search, PenLine } from "lucide-react";
 
 // --- ACTIONS ---
-import { addConnection, deleteWebsite } from "./actions";
+import { addConnection, deleteWebsite, refreshAllPolicies } from "./actions";
 import Link from "next/link"; 
 
 // --- COMPONENTS ---
@@ -163,9 +163,12 @@ export default async function Home() {
               Indítsa el az összes bekötött weboldal tájékoztatójának szinkronizálását.
             </p>
           </div>
-          <Button variant="outline" className="w-full bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-semibold h-11 shadow-sm">
-            Összes frissítése
-          </Button>
+          <form action={refreshAllPolicies}>
+          <button
+             type="submit" className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold h-11 shadow-sm rounded-xl text-[13px] transition-colors">
+              Összes frissítése
+          </button>
+          </form>
         </div>
 
       </section>
