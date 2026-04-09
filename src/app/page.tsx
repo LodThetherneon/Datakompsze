@@ -1,17 +1,17 @@
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { Search, PenLine } from "lucide-react";
 
 // --- ACTIONS ---
-import { addConnection, deleteWebsite, refreshAllPolicies } from "./actions";
-import Link from "next/link"; 
+import { addConnection, deleteWebsite, refreshAllPolicies, rescanWebsite } from "./actions";
+import Link from "next/link";
 
 // --- COMPONENTS ---
 import { AddConnectionDialog } from "@/components/add-connection-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import { RealtimeRefresher } from '@/components/realtime-refresher'
+import { RealtimeRefresher } from '@/components/realtime-refresher';
+import { RescanDialog } from '@/components/rescan-dialog';
 
-// Dátumformázó segédfüggvény a szép magyar megjelenéshez
+// Dátumformázó segédfüggvény
 function formatDate(dateString: string | null) {
   if (!dateString) return "Még nem generált";
   return new Intl.DateTimeFormat('hu-HU', {
@@ -28,7 +28,7 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 2. CÉG LEKÉRDEZÉSE (hogy tudjuk, mik a saját weboldalaink)
+  // 2. CÉG LEKÉRDEZÉSE
   let companyId = null;
   if (user) {
     const { data: company } = await supabase
@@ -39,56 +39,46 @@ export default async function Home() {
     if (company) companyId = company.id;
   }
 
-  // 3. VALÓS ADATOK LEKÉRDEZÉSE (Weboldalak és Rendszerek)
+  // 3. VALÓS ADATOK LEKÉRDEZÉSE
   let websites: any[] = [];
   let systems: any[] = [];
   let pendingSystems = 0;
 
   if (companyId) {
-    // Lekérjük a cég összes weboldalát
     const { data: webData } = await supabase
       .from('websites')
       .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
-    
     if (webData) websites = webData;
 
-    // Lekérjük az összes rendszert, ami ezekhez a weboldalakhoz tartozik
     if (websites.length > 0) {
       const websiteIds = websites.map(w => w.id);
       const { data: sysData } = await supabase
         .from('systems')
         .select('*')
         .in('website_id', websiteIds);
-      
       if (sysData) {
         systems = sysData;
-        // Kiszámoljuk, mennyi vár jóváhagyásra (Megfelelőségi szint kártyához)
         pendingSystems = systems.filter(s => s.status === 'pending').length;
       }
     }
   }
 
-    // 4. STATISZTIKÁK KISZÁMÍTÁSA
-  // Összes Forrás (Weboldalak + Offline Rendszerek)
+  // 4. STATISZTIKÁK
   const totalSources = websites.length;
   const webDomainCount = websites.filter(w => w.status !== 'offline').length;
   const offlineSystemCount = websites.filter(w => w.status === 'offline').length;
-
-  // Összes Kezelt Adattípus
   const totalDataTypes = systems.length;
-  
-  // Megfelelőségi szinthez
   const activeSystemsCount = systems.filter(s => s.status === 'active').length;
-  const inactiveSystemsCount = systems.length - activeSystemsCount - pendingSystems; 
+  const inactiveSystemsCount = systems.length - activeSystemsCount - pendingSystems;
   const complianceScore = systems.length === 0 ? 100 : Math.round(((systems.length - pendingSystems) / systems.length) * 100);
 
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
       <RealtimeRefresher />
-      
-      {/* === FEJLÉC ÉS ÚJ RENDSZER GOMB === */}
+
+      {/* === FEJLÉC === */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Irányítópult</h1>
@@ -99,9 +89,9 @@ export default async function Home() {
         <AddConnectionDialog addAction={addConnection} />
       </header>
 
-      {/* === KPI KÁRTYÁK (Valós adatokkal) === */}
+      {/* === KPI KÁRTYÁK === */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-        
+
         {/* MEGFELELŐSÉGI SZINT */}
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all">
           <div>
@@ -115,14 +105,14 @@ export default async function Home() {
               </span>
             </div>
             <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
-              {pendingSystems > 0 
+              {pendingSystems > 0
                 ? `${pendingSystems} figyelmet igénylő adatkezelés (új süti) jóváhagyásra vár.`
                 : 'Minden ismert adatkezelés szerepel a tájékoztatókban.'}
             </p>
           </div>
         </div>
 
-                {/* ÖSSZEKAPCSOLT RENDSZEREK / HONLAPOK */}
+        {/* RENDSZEREK / HONLAPOK */}
         <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all">
           <div>
             <div className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Rendszerek / honlapok</div>
@@ -159,26 +149,30 @@ export default async function Home() {
         <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div>
             <div className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Gyorsművelet</div>
-            <p className="text-[13px] text-slate-600 leading-relaxed mb-6 font-medium">
-              Indítsa el az összes bekötött weboldal tájékoztatójának szinkronizálását.
+            <p className="text-[13px] text-slate-600 leading-relaxed mb-4 font-medium">
+              Scanneld újra valamelyik weboldalt, vagy szinkronizáld az összes tájékoztatót.
             </p>
           </div>
-          <form action={refreshAllPolicies}>
-          <button
-             type="submit" className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold h-11 shadow-sm rounded-xl text-[13px] transition-colors">
-              Összes frissítése
-          </button>
-          </form>
+          <div className="flex flex-col gap-2">
+            <RescanDialog websites={websites} rescanAction={rescanWebsite} />
+            <form action={refreshAllPolicies}>
+              <button
+                type="submit"
+                className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold h-11 shadow-sm rounded-xl text-[13px] transition-colors"
+              >
+                Összes frissítése
+              </button>
+            </form>
+          </div>
         </div>
 
       </section>
 
-           {/* === SZÉLES LISTANÉZET (Valós Weboldalak Listája) === */}
+      {/* === LISTA NÉZET === */}
       <section className="pt-6 w-full flex-1">
         <h2 className="text-[15px] font-bold text-slate-800 mb-4">Bekötött Weboldalak és Rendszerek Állapota</h2>
-        
+
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden w-full overflow-x-auto">
-          {/* Táblázat Fejléc (Megváltozott oszlopnevek és felosztás) */}
           <div className="min-w-[800px] grid grid-cols-12 gap-4 p-4 border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <div className="col-span-3 pl-4">Rendszer / Weboldal</div>
             <div className="col-span-3">Dátumok (Hozzáadva / Utolsó scan)</div>
@@ -186,8 +180,7 @@ export default async function Home() {
             <div className="col-span-2 text-center">Kezelt Adattípusok</div>
             <div className="col-span-2 text-right pr-4">Státusz</div>
           </div>
-          
-          {/* Táblázat Sorok */}
+
           <div className="min-w-[800px] divide-y divide-slate-50">
             {websites.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-sm font-medium">
@@ -195,31 +188,21 @@ export default async function Home() {
               </div>
             ) : (
               websites.map((site) => {
-                // Rendszerek leszűrése ehhez a weboldalhoz
                 const siteSystems = systems.filter(s => s.website_id === site.id);
-                
                 const totalSystemsCount = siteSystems.length;
                 const pendingSystemsCount = siteSystems.filter(s => s.status === 'pending').length;
-                
-                                // --- VALÓS MATEK A SZKENNELT/MANUÁLIS ADATOKHOZ ---
-                // Most már az adatbázisból pontosan tudjuk az új 'source_type' oszlop alapján!
                 const manualCount = siteSystems.filter(s => s.source_type === 'manual').length;
                 const scannedCount = siteSystems.filter(s => s.source_type === 'scanned').length;
-                
-                // URL és Név formázása
                 const isOffline = site.status === 'offline';
                 const displayName = isOffline ? site.url : site.url.replace(/^https?:\/\//, '');
                 const rawUrl = isOffline ? null : site.url;
-
-                // Verziószám és Dátumok (Jelenleg statikus / placeholderek a hiányzó adatbázismezőkhöz)
-                // Hogy valós legyen: adj 'last_scanned_at' és 'policy_version' oszlopokat a websites táblához!
                 const lastScanned = site.updated_at ? formatDate(site.updated_at) : 'Még nem volt';
-                const policyVersion = site.policy_version || 'N/A'; // Ha nincs ilyen mező, N/A lesz
+                const policyVersion = site.policy_version || 'N/A';
 
                 return (
                   <div key={site.id} className="grid grid-cols-12 gap-4 p-5 items-center hover:bg-slate-50/80 transition-colors group relative">
-                    
-                    {/* 1. Oszlop: Rendszer Név és Kattintható URL */}
+
+                    {/* 1. Rendszer Név */}
                     <div className="col-span-3 pl-4">
                       <div className="font-bold text-[14px] text-slate-800 flex items-center gap-2 truncate">
                         <span className="truncate">{displayName}</span>
@@ -238,8 +221,8 @@ export default async function Home() {
                         )}
                       </div>
                     </div>
-                    
-                                        {/* 2. Oszlop: Hozzáadva és Utolsó Szkennelés */}
+
+                    {/* 2. Dátumok */}
                     <div className="col-span-3 flex flex-col justify-center">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest w-[84px]">Hozzáadva</span>
@@ -253,7 +236,7 @@ export default async function Home() {
                       </div>
                     </div>
 
-                    {/* 3. Oszlop: Tájékoztató Verziószáma */}
+                    {/* 3. Tájékoztató Verzió */}
                     <div className="col-span-2 flex flex-col items-center justify-center">
                       {policyVersion === 'N/A' ? (
                         <span className="px-3 py-1.5 bg-slate-50 text-slate-400 border border-slate-100 text-[11px] font-bold rounded-md">N/A</span>
@@ -265,9 +248,9 @@ export default async function Home() {
                       )}
                     </div>
 
-                                        {/* 4. Oszlop: Kezelt Adattípusok (Kattintható linkkel, ami szűr!) */}
-                    <Link 
-                      href={`/systems?source=${site.id}`} 
+                    {/* 4. Kezelt Adattípusok */}
+                    <Link
+                      href={`/systems?source=${site.id}`}
                       className="col-span-2 flex flex-col justify-center items-center hover:bg-slate-100/60 p-2 rounded-xl transition-colors cursor-pointer group/link"
                       title={`Kattints ide a(z) ${displayName} forráshoz tartozó adatok megtekintéséhez`}
                     >
@@ -275,25 +258,18 @@ export default async function Home() {
                         {totalSystemsCount} <span className="text-[12px] text-slate-500 font-medium ml-0.5 group-hover/link:text-emerald-600/70">db összesen</span>
                       </div>
                       <div className="flex items-center gap-2 text-[11px] font-bold">
-                        <span 
-                          className="flex items-center gap-1.5 text-blue-600 bg-blue-50/80 border border-blue-100 px-2 py-0.5 rounded-md" 
-                          title="Szkennelt/Automatikus adatok"
-                        >
+                        <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50/80 border border-blue-100 px-2 py-0.5 rounded-md" title="Szkennelt/Automatikus adatok">
                           <Search size={12} strokeWidth={2.5} /> {scannedCount}
                         </span>
-                        <span 
-                          className="flex items-center gap-1.5 text-amber-600 bg-amber-50/80 border border-amber-100 px-2 py-0.5 rounded-md" 
-                          title="Manuálisan rögzített adatok"
-                        >
+                        <span className="flex items-center gap-1.5 text-amber-600 bg-amber-50/80 border border-amber-100 px-2 py-0.5 rounded-md" title="Manuálisan rögzített adatok">
                           <PenLine size={12} strokeWidth={2.5} /> {manualCount}
                         </span>
                       </div>
                     </Link>
-                    
-                    {/* 5. Oszlop: Státusz és Lebegő Törlés Gomb */}
+
+                    {/* 5. Státusz + Törlés */}
                     <div className="col-span-2 flex items-center justify-end pr-4">
                       <div className="w-[120px] flex items-center justify-end relative">
-                        {/* Státusz jelző */}
                         {site.status === 'scanning' ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-bold shadow-sm transition-opacity group-hover:opacity-0 w-full justify-center">
                             <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span> Szkennelés
@@ -307,13 +283,11 @@ export default async function Home() {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ellenőrzött
                           </span>
                         )}
-
-                        {/* Lebegő Törlés Gomb (Csak Hover esetén látszik) */}
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-end">
-                          <DeleteConfirmDialog 
-                            id={site.id} 
-                            systemName={site.url} 
-                            deleteAction={deleteWebsite} 
+                          <DeleteConfirmDialog
+                            id={site.id}
+                            systemName={site.url}
+                            deleteAction={deleteWebsite}
                           />
                         </div>
                       </div>
@@ -326,7 +300,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      
+
     </div>
   );
 }

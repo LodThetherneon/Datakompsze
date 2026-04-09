@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { generatePolicy, deletePolicy, restorePolicy } from "@/app/actions";
 import { FileText, Clock, Plus, Filter, RotateCcw, RefreshCw, Trash2, Sparkles, ChevronDown } from "lucide-react";
+import { PolicyDownloadButtons } from '@/components/policy-download-buttons'
 
 function formatDate(d: string | null) {
   if (!d) return "—";
@@ -209,6 +210,10 @@ export default async function PoliciesPage({
                     >
                       <FileText size={13} /> Megtekintés
                     </a>
+                    <PolicyDownloadButtons
+                      policyId={policy.id}
+                      version={policy.version}
+                    />
                     <form action={generatePolicy}>
                       <input type="hidden" name="websiteId" value={policy.website_id} />
                       <button
@@ -267,6 +272,12 @@ export default async function PoliciesPage({
                         >
                           Megnyitás
                         </a>
+
+                        <PolicyDownloadButtons
+                          policyId={policy.id}
+                          version={policy.version}
+                        />
+
                         <form action={restorePolicy}>
                           <input type="hidden" name="id" value={policy.id} />
                           <button

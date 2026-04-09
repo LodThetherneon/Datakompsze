@@ -456,3 +456,22 @@ export async function refreshAllPolicies() {
   revalidatePath('/')
   revalidatePath('/policies')
 }
+
+export async function rescanWebsite(formData: FormData) {
+  const supabase = await createClient()
+  const websiteId = formData.get('websiteId') as string
+  if (!websiteId) throw new Error('Hiányzó weboldal ID!')
+
+  const { data: website } = await supabase
+    .from('websites').select('url').eq('id', websiteId).single()
+  if (!website) throw new Error('A weboldal nem található!')
+
+  await supabase
+    .from('websites')
+    .update({ status: 'scanning', updated_at: new Date().toISOString() })
+    .eq('id', websiteId)
+
+  revalidatePath('/')
+
+  runScanner(websiteId, website.url).catch(err => console.error('Rescan hiba:', err))
+}

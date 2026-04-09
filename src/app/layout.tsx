@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { NavLinks } from '@/components/nav-links'
 import { 
   LayoutDashboard, 
   FileText, 
@@ -76,24 +77,7 @@ export default async function RootLayout({
               </button>
             </div>
 
-            {/* Menü */}
-            <nav className="flex-1 px-5 space-y-1.5 overflow-y-auto">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-3 mt-2">Főmenü</div>
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-200"
-                  >
-                    <Icon size={18} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
+            <NavLinks />
             {/* Alsó Kvóta Szekció */}
             <div className="p-5 border-t border-slate-50">
               <div className="bg-slate-50 rounded-[12px] p-4 border border-slate-100">
