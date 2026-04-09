@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { generatePolicy, deletePolicy, restorePolicy } from "@/app/actions";
-import { FileText, Clock, Plus, Filter, RotateCcw, RefreshCw, Trash2 } from "lucide-react";
+import { FileText, Clock, Plus, Filter, RotateCcw, RefreshCw, Trash2, Sparkles, ChevronDown } from "lucide-react";
 
 function formatDate(d: string | null) {
   if (!d) return "—";
@@ -46,7 +46,6 @@ export default async function PoliciesPage({
     }
   }
 
-  // Szűrés
   const filteredPolicies = filterSite === 'all'
     ? policies
     : policies.filter(p => p.website_id === filterSite);
@@ -64,34 +63,53 @@ export default async function PoliciesPage({
     <div className="w-full space-y-8 font-sans">
 
       {/* FEJLÉC */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Adatkezelési Tájékoztatók</h1>
-          <p className="text-[14px] text-slate-500 mt-2 font-medium">
-            Automatikusan generált, verziózott GDPR tájékoztatók a bekötött rendszerekhez.
-          </p>
+      <header className="flex flex-col gap-6 pb-6 border-b border-slate-200/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Adatkezelési Tájékoztatók</h1>
+            <p className="text-[14px] text-slate-500 mt-2 font-medium">
+              Automatikusan generált, verziózott GDPR tájékoztatók a bekötött rendszerekhez.
+            </p>
+          </div>
         </div>
 
+        {/* ÚJ GENERÁLÁS — szép kártya */}
         {websites.length > 0 && (
-          <form action={generatePolicy} className="flex items-center gap-3">
-            <select
-              name="websiteId"
-              className="px-4 py-2.5 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-            >
-              {websites.map(w => (
-                <option key={w.id} value={w.id}>
-                  {w.status === 'offline' ? w.url : w.url.replace(/^https?:\/\//, '')}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition-colors"
-            >
-              <Plus size={15} />
-              Új tájékoztató generálása
-            </button>
-          </form>
+          <div className="bg-gradient-to-r from-emerald-50 to-slate-50 border border-emerald-100 rounded-2xl p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Sparkles size={16} className="text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-bold text-slate-700">Új tájékoztató generálása</div>
+                  <div className="text-[12px] text-slate-500">Válaszd ki a forrást, majd kattints a gombra</div>
+                </div>
+              </div>
+              <form action={generatePolicy} className="flex items-center gap-3">
+                <div className="relative">
+                  <select
+                    name="websiteId"
+                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none shadow-sm cursor-pointer"
+                  >
+                    {websites.map(w => (
+                      <option key={w.id} value={w.id}>
+                        {w.status === 'offline' ? w.url : w.url.replace(/^https?:\/\//, '')}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                >
+                  <Plus size={15} />
+                  Generálás
+                </button>
+              </form>
+            </div>
+          </div>
         )}
       </header>
 
@@ -128,8 +146,6 @@ export default async function PoliciesPage({
               </a>
             );
           })}
-
-          {/* Archivált toggle */}
           <a
             href={showArchived
               ? `/policies${filterSite !== 'all' ? `?site=${filterSite}` : ''}`
@@ -155,7 +171,7 @@ export default async function PoliciesPage({
           </div>
           <h3 className="text-lg font-bold text-slate-700 mb-2">Még nincs generált tájékoztató</h3>
           <p className="text-[14px] text-slate-500 max-w-md mx-auto">
-            Válassz ki egy forrást fent, és kattints az „Új tájékoztató generálása" gombra.
+            Válassz ki egy forrást fent, és kattints a "Generálás" gombra.
           </p>
         </div>
       )}
@@ -186,7 +202,6 @@ export default async function PoliciesPage({
                       </div>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     <a
                       href={`/policies/${policy.id}`}
@@ -244,22 +259,33 @@ export default async function PoliciesPage({
                     <td className="px-5 py-3 text-slate-500 text-[13px]">
                       {formatDate(policy.valid_from)} – {formatDate(policy.valid_to)}
                     </td>
-                    <td className="px-5 py-3 text-right flex items-center justify-end gap-2">
-                      <a
-                        href={`/policies/${policy.id}`}
-                        className="text-blue-600 hover:underline text-[12px] font-semibold"
-                      >
-                        Megnyitás
-                      </a>
-                      <form action={restorePolicy}>
-                        <input type="hidden" name="id" value={policy.id} />
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1 text-[12px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors"
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <a
+                          href={`/policies/${policy.id}`}
+                          className="text-blue-600 hover:underline text-[12px] font-semibold"
                         >
-                          <RotateCcw size={11} /> Visszaállítás
-                        </button>
-                      </form>
+                          Megnyitás
+                        </a>
+                        <form action={restorePolicy}>
+                          <input type="hidden" name="id" value={policy.id} />
+                          <button
+                            type="submit"
+                            className="flex items-center gap-1 text-[12px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            <RotateCcw size={11} /> Visszaállítás
+                          </button>
+                        </form>
+                        <form action={deletePolicy}>
+                          <input type="hidden" name="id" value={policy.id} />
+                          <button
+                            type="submit"
+                            className="flex items-center gap-1 text-[12px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={11} /> Törlés
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
