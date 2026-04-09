@@ -299,7 +299,7 @@ export default async function Home() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-bold shadow-sm transition-opacity group-hover:opacity-0 w-full justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktív
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ellenőrzött
                           </span>
                         )}
 

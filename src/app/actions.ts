@@ -9,7 +9,6 @@ export async function addConnection(formData: FormData) {
 
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
-  // 1. Cég megkeresése
   const { data: company } = await supabase
     .from('companies')
     .select('id')
@@ -18,39 +17,41 @@ export async function addConnection(formData: FormData) {
 
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  // 2. Kinyerjük a rejtett mezőket
   const type = formData.get('type') as 'website' | 'system'
   const mode = formData.get('mode') as 'link' | 'manual'
 
-  // --- HA WEBOLDALT VAGY RENDSZERT LINKKEL ADNAK HOZZÁ ---
   if (mode === 'link') {
     const rawUrl = formData.get('url') as string
     const cleanUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
 
-    // A weboldalakat és a linkelt rendszereket is a FORRÁSOK (websites) közé mentjük!
-    const { error } = await supabase.from('websites').insert([
-      { 
-        company_id: company.id, 
+    // 1. Weboldal mentése scanning státusszal
+    const { data: newSite, error } = await supabase
+      .from('websites')
+      .insert([{
+        company_id: company.id,
         url: type === 'system' ? `Külső Rendszer: ${cleanUrl}` : cleanUrl,
-        status: 'scanning' 
-      }
-    ])
-    if (error) throw error
-  } 
-  
-    // --- HA MANUÁLISAN ADNAK HOZZÁ EGY RENDSZERT ---
-  else if (mode === 'manual') {
+        status: 'scanning'
+      }])
+      .select()
+      .single()
+
+    if (error || !newSite) throw error
+
+    // 2. Scanner triggerelése a háttérben (nem várjuk meg)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    fetch(`${baseUrl}/api/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ websiteId: newSite.id, url: cleanUrl })
+    }).catch(err => console.error('Scanner trigger hiba:', err))
+
+  } else if (mode === 'manual') {
     const name = formData.get('name') as string
-    
-    // Szépen, prefix nélkül mentjük el a nevét az URL mezőbe, 
-    // DE a status mezőbe beírjuk, hogy 'offline', hogy később meg tudjuk különböztetni!
-    const { error } = await supabase.from('websites').insert([
-      { 
-        company_id: company.id, 
-        url: name, // Pl. "Belső HR Rendszer"
-        status: 'offline' // <--- EZ A KULCS! Így tudjuk, hogy ez nem egy weblap.
-      }
-    ])
+    const { error } = await supabase.from('websites').insert([{
+      company_id: company.id,
+      url: name,
+      status: 'offline'
+    }])
     if (error) throw error
   }
 
