@@ -30,7 +30,7 @@ export async function addConnection(formData: FormData) {
       .from('websites')
       .insert([{
         company_id: company.id,
-        url: type === 'system' ? `Külső Rendszer: ${cleanUrl}` : cleanUrl,
+        url: cleanUrl,
         status: 'scanning'
       }])
       .select()

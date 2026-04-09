@@ -9,6 +9,7 @@ import Link from "next/link";
 // --- COMPONENTS ---
 import { AddConnectionDialog } from "@/components/add-connection-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+import { RealtimeRefresher } from '@/components/realtime-refresher'
 
 // Dátumformázó segédfüggvény a szép magyar megjelenéshez
 function formatDate(dateString: string | null) {
@@ -85,6 +86,7 @@ export default async function Home() {
 
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
+      <RealtimeRefresher />
       
       {/* === FEJLÉC ÉS ÚJ RENDSZER GOMB === */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
