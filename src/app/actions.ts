@@ -216,12 +216,12 @@ export async function generatePolicy(formData: FormData) {
 
   const cookieSection = cookieSystems.length > 0
     ? `
-    <h2>5. S\u00fctik (Cookie-k) használata</h2>
-    <p>A weboldal s\u00ütiket (cookie-kat) használ. A s\u00fctik kis szövegfájlok, amelyeket a böngész\u0151 tárol az eszközön. Az alábbi s\u00ütiket alkalmazzuk:</p>
+    <h2>5. Sütik (Cookie-k) használata</h2>
+    <p>A weboldal sütiket (cookie-kat) használ. A sütik kis szövegfájlok, amelyeket a böngészésző tárol az eszközön. Az alábbi sütiket alkalmazzuk:</p>
     <table>
       <thead><tr>
-        <th>S\u00fcti / Szolgáltatás neve</th>
-        <th>Célkit\u0171zés</th>
+        <th>Sütik / Szolgáltatás neve</th>
+        <th>Célkitűzés</th>
         <th>Kezelt adatok</th>
       </tr></thead>
       <tbody>
@@ -233,7 +233,7 @@ export async function generatePolicy(formData: FormData) {
           </tr>`).join('')}
       </tbody>
     </table>
-    <p>A s\u00fctik elfogadása önkéntes. A böngész\u0151 beállításaiban a s\u00fctik bármikor törölhet\u0151k vagy letilthatók, ez azonban egyes funkciók m\u0171ködését korlátozhatja.</p>`
+    <p>A sütik elfogadása önkéntes. A böngésző beállításaiban a sütik bármikor törölhetők vagy letilthatók, ez azonban egyes funkciók működését korlátozhatja.</p>`
     : ''
 
   const n = cookieSystems.length > 0
@@ -267,7 +267,7 @@ export async function generatePolicy(formData: FormData) {
   Hatályos: ${today}-tól
 </div>
 
-<h2>1. Az adatkezel\u0151 adatai</h2>
+<h2>1. Az adatkezelő adatai</h2>
 <p>
   <strong>Cégnév:</strong> ${company.name || '—'}<br>
   <strong>Székhely:</strong> ${company.headquarters || '—'}<br>
@@ -277,10 +277,10 @@ export async function generatePolicy(formData: FormData) {
   <strong>Telefon:</strong> ${company.phone || '—'}
 </p>
 
-<h2>2. Adatvédelmi tisztvisel\u0151 (DPO)</h2>
+<h2>2. Adatvédelmi tisztviselő (DPO)</h2>
 ${dpoSection}
 
-<h2>3. A kezelt adatok, az adatkezelés célja, jogalapja és meg\u0151rzési ideje</h2>
+<h2>3. A kezelt adatok, az adatkezelés célja, jogalapja és megörzési ideje</h2>
 <p>A(z) <strong>${siteName}</strong> az alábbi személyes adatokat kezeli:</p>
 <table>
   <thead><tr>
@@ -288,7 +288,7 @@ ${dpoSection}
     <th>Kezelt adatok</th>
     <th>Az adatkezelés célja</th>
     <th>Jogalap</th>
-    <th>Meg\u0151rzési id\u0151</th>
+    <th>Megörzési idő</th>
   </tr></thead>
   <tbody>${mainTableRows}</tbody>
 </table>
@@ -315,7 +315,7 @@ ${cookieSection}
 </p>
 
 <h2>${n ? '7' : '6'}. Automatizált döntéshozatal és profilalkotás</h2>
-<p>Az adatkezel\u0151 a rendelkezésre álló személyes adatok alapján automatizált döntéshozatalt vagy profilalkotást <strong>nem végez</strong> (GDPR 22. cikk).</p>
+<p>Az adatkezelés a rendelkezésre álló személyes adatok alapján automatizált döntéshozatalt vagy profilalkotást <strong>nem végez</strong> (GDPR 22. cikk).</p>
 
 <h2>${n ? '8' : '7'}. Az érintett jogai</h2>
 <p>A GDPR alapján Ön az alábbi jogokkal rendelkezik:</p>
@@ -329,17 +329,17 @@ ${cookieSection}
   <li><strong>Hozzájárulás visszavonása:</strong> ha az adatkezelés hozzájáruláson alapul, azt bármikor visszavonhatja</li>
 </ul>
 <p>Jogait az alábbi e-mail címen gyakorolhatja: <a href="mailto:${company.email}">${company.email || '—'}</a></p>
-<p>Jogorvoslati lehet\u0151séggel élhet a <strong>Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH)</strong>:<br>
+<p>Jogorvoslati lehetőséggel élhet a <strong>Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH)</strong>:<br>
   Cím: 1055 Budapest, Falk Miksa utca 9-11. &nbsp;·&nbsp;
   Web: <a href="https://www.naih.hu" target="_blank">www.naih.hu</a> &nbsp;·&nbsp;
   E-mail: ugyfelszolgalat@naih.hu
 </p>
 
 <h2>${n ? '9' : '8'}. Adatbiztonsági intézkedések</h2>
-<p>Az adatkezel\u0151 megfelel\u0151 technikai és szervezési intézkedéseket alkalmaz a személyes adatok védelme érdekében, beleértve a titkosítást, hozzáférés-vezérlést és rendszeres biztonsági felülvizsgálatokat.</p>
+<p>Az adatkezelő megfelelő technikai és szervezési intézkedéseket alkalmaz a személyes adatok védelme érdekében, beleértve a titkosítást, hozzáférés-vezérlést és rendszeres biztonsági felülvizsgálatokat.</p>
 
 <h2>${n ? '10' : '9'}. Tájékoztató módosítása</h2>
-<p>Az adatkezel\u0151 fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja. A mindenkori hatályos verzió mindig a weboldalon érhető el.</p>
+<p>Az adatkezelő fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja. A mindenkori hatályos verzió mindig a weboldalon érhető el.</p>
 
 <p style="margin-top:48px;font-size:12px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:16px">
   Generálva: ${today} &nbsp;·&nbsp; DataKomp automatikus tájékoztató generátor &nbsp;·&nbsp; v${newVersion}
