@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { runScanner } from '@/lib/scanner'
 
 export async function addConnection(formData: FormData) {
   const supabase = await createClient()
@@ -37,13 +38,8 @@ export async function addConnection(formData: FormData) {
 
     if (error || !newSite) throw error
 
-    // 2. Scanner triggerelése a háttérben (nem várjuk meg)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    fetch(`${baseUrl}/api/scan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ websiteId: newSite.id, url: cleanUrl })
-    }).catch(err => console.error('Scanner trigger hiba:', err))
+    // ...és az addConnection-ben:
+  runScanner(newSite.id, cleanUrl).catch(err => console.error('Scanner hiba:', err))
 
   } else if (mode === 'manual') {
     const name = formData.get('name') as string
