@@ -181,12 +181,26 @@ export async function runScanner(websiteId: string, url: string) {
   try {
     const { trackers, formFields, pagesScanned } = await deepScan(url)
 
+    // Csak a PENDING scanned rekordokat töröljük — az elfogadottakat megtartjuk
     await supabase
       .from('systems')
       .delete()
       .eq('website_id', websiteId)
       .eq('source_type', 'scanned')
+      .eq('status', 'pending')
 
+    // Lekérjük az összes már ELFOGADOTT scanned rekordot (névlista a duplikáció elkerüléséhez)
+    const { data: activeSystems } = await supabase
+      .from('systems')
+      .select('system_name, collected_data')
+      .eq('website_id', websiteId)
+      .eq('source_type', 'scanned')
+      .eq('status', 'active')
+
+    const activeNames = new Set(activeSystems?.map(s => s.system_name) ?? [])
+    const activeData = new Set(activeSystems?.map(s => s.collected_data) ?? [])
+
+    // Manuális rendszerek (ezekkel sem duplikálunk)
     const { data: manualSystems } = await supabase
       .from('systems')
       .select('purpose, collected_data')
@@ -196,6 +210,9 @@ export async function runScanner(websiteId: string, url: string) {
     const siteName = url.replace(/^https?:\/\//, '').split('/')[0]
 
     for (const tracker of trackers) {
+      // Kihagyjuk ha már aktív státuszban létezik
+      if (activeNames.has(tracker.name)) continue
+
       const existsManually = manualSystems?.some(
         m => m.purpose?.toLowerCase().includes(tracker.purpose.toLowerCase()) ||
              m.collected_data?.toLowerCase().includes(tracker.name.toLowerCase())
@@ -213,6 +230,9 @@ export async function runScanner(websiteId: string, url: string) {
     }
 
     for (const field of formFields) {
+      // Kihagyjuk ha már aktív státuszban létezik ugyanez az adat
+      if (activeData.has(field.data)) continue
+
       const existsManually = manualSystems?.some(
         m => m.collected_data?.toLowerCase().includes(field.data.toLowerCase())
       )
