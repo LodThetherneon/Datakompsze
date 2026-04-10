@@ -49,3 +49,20 @@ export async function saveCompanySettings(formData: FormData) {
   // Frissítjük az oldalt, hogy látszódjanak az új adatok
   revalidatePath('/settings')
 }
+
+export async function changePlan(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Nem vagy bejelentkezve!')
+
+  const plan = formData.get('plan') as string
+  if (!['free', 'pro', 'max'].includes(plan)) throw new Error('Érvénytelen csomag!')
+
+  await supabase
+    .from('companies')
+    .update({ plan })
+    .eq('user_id', user.id)
+
+  revalidatePath('/settings')
+  revalidatePath('/')
+}

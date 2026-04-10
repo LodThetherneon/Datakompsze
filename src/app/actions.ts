@@ -11,6 +11,21 @@ export async function addConnection(formData: FormData) {
 
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
+  const { data: companyFull } = await supabase
+    .from('companies').select('id, plan').eq('user_id', user.id).single()
+
+  const { count: currentCount } = await supabase
+    .from('websites')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyFull!.id)
+
+  const quotaMap: Record<string, number | null> = { free: 3, pro: 30, max: null }
+  const quota = quotaMap[companyFull?.plan ?? 'free']
+
+  if (quota !== null && (currentCount ?? 0) >= quota) {
+    throw new Error(`Elérted a ${companyFull?.plan} csomag kvótáját (${quota} db). Válts magasabb csomagra a Beállítások oldalon!`)
+  }
+
   const { data: company } = await supabase
     .from('companies')
     .select('id')

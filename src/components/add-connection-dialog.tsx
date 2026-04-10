@@ -87,13 +87,13 @@ export function AddConnectionDialog({ addAction }: { addAction: (formData: FormD
                 onClick={() => setMode("link")}
                 className={`flex-1 text-center py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${mode === "link" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               >
-                Link / Automata
+                Online hivatkozás
               </div>
               <div 
                 onClick={() => setMode("manual")}
                 className={`flex-1 text-center py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${mode === "manual" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               >
-                Manuális felvitel
+                Belső kapcsolat
               </div>
             </div>
           </div>

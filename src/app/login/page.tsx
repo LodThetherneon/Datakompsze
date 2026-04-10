@@ -1,69 +1,59 @@
 import { ShieldCheck } from "lucide-react";
-import { login, signup } from "./actions";
+import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>;
+  searchParams: Promise<{ error?: string; tab?: string }>;
 }) {
-  const error = (await searchParams).error;
+  const params = await searchParams;
+  const error = params.error;
+  const tab = params.tab ?? 'login';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8faf9] p-4 font-sans">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-slate-100 p-8">
-        
-        {/* Logó */}
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-4">
-            <ShieldCheck className="text-white" size={24} />
+    <div className="min-h-screen flex bg-[#f8faf9] font-sans">
+      
+      {/* Bal oldal — branding */}
+      <div className="hidden lg:flex flex-col justify-between w-[45%] bg-gradient-to-br from-emerald-600 to-emerald-800 p-12 text-white">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <ShieldCheck size={20} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Data<span className="text-emerald-600">Komp</span></h1>
-          <p className="text-sm text-slate-500 mt-1">Jelentkezz be a fiókodba!</p>
+          <span className="text-xl font-bold tracking-tight">DataKomp</span>
         </div>
-
-        {/* Hibaüzenet (ha van) */}
-        {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-6 text-center border border-red-100">
-            {error}
+        <div>
+          <h2 className="text-4xl font-black leading-tight mb-4">
+            GDPR megfelelőség,<br />automatizálva.
+          </h2>
+          <p className="text-emerald-100 text-[15px] leading-relaxed max-w-sm">
+            Kezeld az adatvédelmi kötelezettségeidet egyetlen helyen — adattérképezéstől a tájékoztatók generálásáig.
+          </p>
+          <div className="mt-8 flex flex-col gap-3">
+            {['Automatikus adattérkép', 'Tájékoztató generálás', 'GDPR megfelelőség követés', 'Rendszer integráció'].map(f => (
+              <div key={f} className="flex items-center gap-2 text-[14px] text-emerald-100">
+                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px]">✓</span>
+                </div>
+                {f}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+        <p className="text-emerald-200/60 text-[12px]">© 2026 DataKomp. Minden jog fenntartva.</p>
+      </div>
 
-        {/* Űrlap */}
-        <form className="space-y-5">
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email cím</label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              required 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-              placeholder="admin@datakomp.hu"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Jelszó</label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-              placeholder="••••••••"
-            />
+      {/* Jobb oldal — form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center">
+              <ShieldCheck size={20} className="text-white" />
+            </div>
+            <span className="text-xl font-bold text-slate-900">Data<span className="text-emerald-600">Komp</span></span>
           </div>
 
-          <div className="pt-2 flex gap-3">
-            <button formAction={login} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors">
-              Belépés
-            </button>
-            <button formAction={signup} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition-colors">
-              Regisztráció
-            </button>
-          </div>
-        </form>
-
+          <LoginForm initialTab={tab} error={error} />
+        </div>
       </div>
     </div>
   );
