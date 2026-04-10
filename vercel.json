@@ -2,6 +2,10 @@
   "functions": {
     "src/app/api/scan/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/policy-pdf/[id]/route.ts": {
+      "memory": 1024,
+      "maxDuration": 30
     }
   }
 }
