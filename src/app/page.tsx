@@ -278,6 +278,10 @@ export default async function Home() {
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold shadow-sm transition-opacity group-hover:opacity-0 w-full justify-center">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Belső hálózat
                           </span>
+                        ) : pendingSystemsCount > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[11px] font-bold shadow-sm transition-opacity group-hover:opacity-0 w-full justify-center">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Függőben
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-bold shadow-sm transition-opacity group-hover:opacity-0 w-full justify-center">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ellenőrzött
@@ -287,6 +291,7 @@ export default async function Home() {
                           <DeleteConfirmDialog
                             id={site.id}
                             systemName={site.url}
+                            websiteId={site.id} 
                             deleteAction={deleteWebsite}
                           />
                         </div>

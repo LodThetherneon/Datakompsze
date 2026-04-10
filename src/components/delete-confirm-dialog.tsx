@@ -19,7 +19,7 @@ interface DeleteConfirmDialogProps {
   id: string;
   systemName: string;
   websiteId: string;
-  deleteAction: (formData: FormData) => Promise<{ websiteId: string | null }>;
+  deleteAction: (formData: FormData) => Promise<{ websiteId: string | null } | void>;
 }
 
 export function DeleteConfirmDialog({ id, systemName, websiteId, deleteAction }: DeleteConfirmDialogProps) {
