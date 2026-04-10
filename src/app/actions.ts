@@ -96,9 +96,19 @@ export async function addManualSystem(formData: FormData) {
 export async function deleteSystem(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
+
+  const { data: sys } = await supabase
+    .from('systems')
+    .select('website_id')
+    .eq('id', id)
+    .single()
+
   const { error } = await supabase.from('systems').delete().eq('id', id)
   if (error) throw error
-  revalidatePath('/systems')
+
+  // revalidatePath-t NEM hívjuk itt — a dialog kezeli majd
+
+  return { websiteId: sys?.website_id ?? null }
 }
 
 export async function acceptSystem(formData: FormData) {

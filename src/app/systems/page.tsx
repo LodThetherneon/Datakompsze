@@ -173,6 +173,7 @@ export default async function SystemsPage(props: { searchParams: Promise<{ filte
                     <DeleteConfirmDialog 
                       id={sys.id} 
                       systemName={sys.system_name} 
+                      websiteId={sys.website_id}
                       deleteAction={deleteSystem} 
                     />
                   </div>
