@@ -206,7 +206,7 @@ export async function runScanner(websiteId: string, url: string) {
           system_name: tracker.name,
           purpose: tracker.purpose,
           collected_data: tracker.collected_data,
-          status: 'active',
+          status: 'pending',
           source_type: 'scanned'
         })
       }
@@ -222,7 +222,7 @@ export async function runScanner(websiteId: string, url: string) {
           system_name: `${siteName} – Webes űrlap`,
           purpose: field.purpose,
           collected_data: field.data,
-          status: 'active',
+          status: 'pending',
           source_type: 'scanned'
         })
       }

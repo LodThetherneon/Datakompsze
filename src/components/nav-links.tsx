@@ -42,9 +42,6 @@ export function NavLinks() {
               }`}
             />
             <span>{item.label}</span>
-            {isActive && (
-              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            )}
           </Link>
         )
       })}

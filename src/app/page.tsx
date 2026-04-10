@@ -106,7 +106,7 @@ export default async function Home() {
             </div>
             <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
               {pendingSystems > 0
-                ? `${pendingSystems} figyelmet igénylő adatkezelés (új süti) jóváhagyásra vár.`
+                ? `${pendingSystems} figyelmet igénylő adatkezelés (új süti) függőben vár.`
                 : 'Minden ismert adatkezelés szerepel a tájékoztatókban.'}
             </p>
           </div>
@@ -150,7 +150,7 @@ export default async function Home() {
           <div>
             <div className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Gyorsművelet</div>
             <p className="text-[13px] text-slate-600 leading-relaxed mb-4 font-medium">
-              Scanneld újra valamelyik weboldalt, vagy szinkronizáld az összes tájékoztatót.
+              Scanneld újra valamelyik weboldalt, vagy frissítsd az összes tájékoztatót.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -160,7 +160,7 @@ export default async function Home() {
                 type="submit"
                 className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold h-11 shadow-sm rounded-xl text-[13px] transition-colors"
               >
-                Összes frissítése
+                Összes dokumentum frissítése
               </button>
             </form>
           </div>
