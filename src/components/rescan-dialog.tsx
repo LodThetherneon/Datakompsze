@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ScanSearch, X, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/toast-provider'
 
 type Website = { id: string; url: string; status: string }
 
@@ -15,15 +16,22 @@ export function RescanDialog({
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(websites[0]?.id || '')
+  const { success, error } = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     const fd = new FormData()
     fd.set('websiteId', selected)
-    await rescanAction(fd)
-    setLoading(false)
-    setOpen(false)
+    try {
+      await rescanAction(fd)
+      setOpen(false)
+      success('Újraszkennelés sikeresen elindítva!')
+    } catch (err: any) {
+      error(err?.message ?? 'Hiba történt a szkennelés indításakor.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const scannable = websites.filter(w => w.status !== 'offline')

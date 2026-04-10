@@ -1,6 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { SettingsForm } from "./settings-form";
-import { saveCompanySettings, changePlan } from "./actions";
+import { changePlan } from "./actions";
 import { Crown, Zap, Check, Infinity } from "lucide-react";
 
 const PLANS = [
@@ -39,38 +38,29 @@ export default async function SettingsPage() {
     company = data;
   }
 
-  const currentPlan = company?.plan ?? 'free'
+  const currentPlan = company?.plan ?? 'free';
 
   const { count: websiteCount } = await supabase
     .from('websites')
     .select('id', { count: 'exact', head: true })
-    .eq('company_id', company?.id ?? '')
+    .eq('company_id', company?.id ?? '');
 
-  const used = websiteCount ?? 0
-  const quota = currentPlan === 'free' ? 3 : currentPlan === 'pro' ? 30 : null
-  const quotaPercent = quota ? Math.min((used / quota) * 100, 100) : 100
-  const isOverQuota = quota !== null && used >= quota
+  const used = websiteCount ?? 0;
+  const quota = currentPlan === 'free' ? 3 : currentPlan === 'pro' ? 30 : null;
+  const quotaPercent = quota ? Math.min((used / quota) * 100, 100) : 100;
+  const isOverQuota = quota !== null && used >= quota;
 
   return (
     <div className="max-w-4xl space-y-10 font-sans">
 
       <header className="pb-6 border-b border-slate-200/80">
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Beállítások & Előfizetés</h1>
+        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Előfizetés</h1>
         <p className="text-[14px] text-slate-500 mt-2 font-medium">
-          Céges adatok és előfizetési csomag kezelése.
+          Jelenlegi csomag és kvóta áttekintése, csomag módosítása.
         </p>
       </header>
 
-      {/* ===== CÉGES ADATOK — FENT ===== */}
-      <SettingsForm company={company} saveAction={saveCompanySettings} />
-
-      {/* ===== ELVÁLASZTÓ ===== */}
-      <div className="border-t border-slate-200/80 pt-2">
-        <h2 className="text-[18px] font-bold text-slate-800 mb-1">Előfizetés</h2>
-        <p className="text-[14px] text-slate-500">Jelenlegi csomag és kvóta áttekintése, csomag módosítása.</p>
-      </div>
-
-      {/* ===== JELENLEGI CSOMAG STÁTUSZ ===== */}
+      {/* JELENLEGI CSOMAG STÁTUSZ */}
       <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -96,7 +86,7 @@ export default async function SettingsPage() {
             <div
               className={`h-2 rounded-full transition-all ${isOverQuota ? 'bg-red-500' : 'bg-emerald-500'}`}
               style={{ width: `${quota === null ? 40 : quotaPercent}%` }}
-            ></div>
+            />
           </div>
           {isOverQuota && (
             <p className="text-[12px] text-red-500 font-medium">
@@ -106,12 +96,12 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* ===== CSOMAGOK ===== */}
+      {/* CSOMAGOK */}
       <section>
         <h3 className="text-[15px] font-bold text-slate-800 mb-4">Csomagok</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(plan => {
-            const isActive = currentPlan === plan.id
+            const isActive = currentPlan === plan.id;
             return (
               <div key={plan.id} className={`relative bg-white rounded-2xl border-2 p-6 flex flex-col gap-4 transition-all ${
                 isActive
@@ -120,7 +110,6 @@ export default async function SettingsPage() {
                   ? 'border-blue-200 shadow-md'
                   : 'border-slate-100'
               }`}>
-
                 {plan.highlight && !isActive && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
                     Legnépszerűbb
@@ -131,7 +120,6 @@ export default async function SettingsPage() {
                     Jelenlegi
                   </div>
                 )}
-
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     {plan.id === 'max'
@@ -142,7 +130,6 @@ export default async function SettingsPage() {
                   <div className="text-[22px] font-black text-slate-900">{plan.price}</div>
                   <div className="text-[12px] text-slate-400 mt-0.5">{plan.quotaLabel}</div>
                 </div>
-
                 <ul className="space-y-2 flex-1">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-center gap-2 text-[13px] text-slate-600">
@@ -151,7 +138,6 @@ export default async function SettingsPage() {
                     </li>
                   ))}
                 </ul>
-
                 {!isActive ? (
                   <form action={changePlan}>
                     <input type="hidden" name="plan" value={plan.id} />
@@ -171,7 +157,7 @@ export default async function SettingsPage() {
                   </div>
                 )}
               </div>
-            )
+            );
           })}
         </div>
       </section>

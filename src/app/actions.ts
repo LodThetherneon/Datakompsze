@@ -500,3 +500,30 @@ export async function rescanWebsite(formData: FormData) {
 
   runScanner(websiteId, website.url).catch(err => console.error('Rescan hiba:', err))
 }
+
+export async function acceptAllPending() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Nem vagy bejelentkezve!')
+
+  const { data: company } = await supabase
+    .from('companies').select('id').eq('user_id', user.id).single()
+  if (!company) throw new Error('Nincs cégadat!')
+
+  const { data: websites } = await supabase
+    .from('websites').select('id').eq('company_id', company.id)
+
+  if (!websites || websites.length === 0) return
+
+  const websiteIds = websites.map((w) => w.id)
+
+  const { error } = await supabase
+    .from('systems')
+    .update({ status: 'active' })
+    .in('website_id', websiteIds)
+    .eq('status', 'pending')
+
+  if (error) throw error
+
+  revalidatePath('/systems')
+}

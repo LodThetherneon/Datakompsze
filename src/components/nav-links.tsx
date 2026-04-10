@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Database, Settings } from 'lucide-react'
+import { LayoutDashboard, FileText, Database, Settings, Building2 } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Irányítópult', icon: LayoutDashboard },
   { href: '/systems', label: 'Kezelt adattípusok', icon: Database },
   { href: '/policies', label: 'Tájékoztatók', icon: FileText },
-  { href: '/settings', label: 'Beállítások & Előfizetés', icon: Settings },
+  { href: '/company', label: 'Cégadatok', icon: Building2 },
+  { href: '/settings', label: 'Előfizetés', icon: Settings },
 ]
 
 export function NavLinks() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2, AlertTriangle, RefreshCw, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
@@ -14,21 +15,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { generatePolicy } from "@/app/actions";
+import { useToast } from "@/components/toast-provider";
 
 interface DeleteConfirmDialogProps {
   id: string;
   systemName: string;
   websiteId: string;
+  hasPolicy?: boolean; // ← ÚJ: ha false, a tájékoztató kérdést átugorja
   deleteAction: (formData: FormData) => Promise<{ websiteId: string | null } | void>;
 }
 
-export function DeleteConfirmDialog({ id, systemName, websiteId, deleteAction }: DeleteConfirmDialogProps) {
+export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = false, deleteAction }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRefreshPrompt, setShowRefreshPrompt] = useState(false);
   const [deletedWebsiteId, setDeletedWebsiteId] = useState<string | null>(null);
+  const router = useRouter();
+  const { success, error } = useToast();
 
   const isMatch = inputValue === systemName;
 
@@ -40,33 +45,51 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, deleteAction }:
     const formData = new FormData();
     formData.append("id", id);
 
-    const result = await deleteAction(formData);
+    try {
+      const result = await deleteAction(formData);
 
-    setIsDeleting(false);
-    setInputValue("");
+      setInputValue("");
 
-    if (result?.websiteId) {
-      setDeletedWebsiteId(result.websiteId);
-      setShowRefreshPrompt(true);
-    } else {
-      setOpen(false);
+      // Ha van tájékoztató → megkérdezzük, frissítse-e
+      if (hasPolicy && result?.websiteId) {
+        setDeletedWebsiteId(result.websiteId);
+        setShowRefreshPrompt(true);
+      } else {
+        // Nincs tájékoztató → egyből bezárjuk
+        success(`„${systemName}" sikeresen törölve.`);
+        setOpen(false);
+        router.refresh();
+      }
+    } catch (err: any) {
+      error(err?.message ?? "Hiba történt a törlés során.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleRefresh = async () => {
     if (!deletedWebsiteId) return;
     setIsRefreshing(true);
-    const fd = new FormData();
-    fd.set("websiteId", deletedWebsiteId);
-    await generatePolicy(fd);
-    setIsRefreshing(false);
-    setOpen(false);
-    setShowRefreshPrompt(false);
+    try {
+      const fd = new FormData();
+      fd.set("websiteId", deletedWebsiteId);
+      await generatePolicy(fd);
+      success(`„${systemName}" törölve, tájékoztató frissítve!`);
+    } catch (err: any) {
+      error(err?.message ?? "Hiba a tájékoztató frissítésekor.");
+    } finally {
+      setIsRefreshing(false);
+      setOpen(false);
+      setShowRefreshPrompt(false);
+      router.refresh();
+    }
   };
 
   const handleSkip = () => {
+    success(`„${systemName}" sikeresen törölve.`);
     setOpen(false);
     setShowRefreshPrompt(false);
+    router.refresh();
   };
 
   return (
@@ -145,7 +168,7 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, deleteAction }:
           </>
         )}
 
-        {/* === FRISSÍTÉS KÉRDÉS === */}
+        {/* === FRISSÍTÉS KÉRDÉS (csak ha hasPolicy === true) === */}
         {showRefreshPrompt && (
           <>
             <DialogHeader>

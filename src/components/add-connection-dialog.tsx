@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from '@/components/toast-provider'
 import { Plus, Globe, Server, Link as LinkIcon, DatabaseBackup } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,16 +18,22 @@ export function AddConnectionDialog({ addAction }: { addAction: (formData: FormD
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"website" | "system">("website");
   const [mode, setMode] = useState<"link" | "manual">("link");
+  const { success, error } = useToast()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    formData.append("type", type);
-    formData.append("mode", mode);
-    
-    await addAction(formData);
-    setOpen(false);
-  };
+  e.preventDefault()
+  const formData = new FormData(e.currentTarget)
+  formData.append('type', type)
+  formData.append('mode', mode)
+
+  try {
+    await addAction(formData)
+    setOpen(false)
+    success(mode === 'link' ? 'Weboldal sikeresen hozzáadva, scan elindult!' : 'Rendszer sikeresen hozzáadva!')
+  } catch (err: any) {
+    error(err?.message ?? 'Hiba történt a hozzáadás során.')
+  }
+}
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
