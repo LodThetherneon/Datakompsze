@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Plus, Database, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast-provider";
 import {
   Dialog,
@@ -24,16 +25,17 @@ import {
 interface AddManualSystemDialogProps {
   addAction: (formData: FormData) => Promise<void>;
   existingSystems: any[];
+  existingProcesses: { id: string; process_name: string }[]; // ← ÚJ
 }
 
-export function AddManualSystemDialog({ addAction, existingSystems }: AddManualSystemDialogProps) {
+export function AddManualSystemDialog({ addAction, existingSystems, existingProcesses }: AddManualSystemDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSubmitting) return; // dupla küldés megakadályozása
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -72,12 +74,13 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
           </div>
           <DialogTitle className="text-xl font-bold text-slate-800">Kezelt adattípus felvétele</DialogTitle>
           <DialogDescription className="text-sm text-slate-500 pt-1">
-            Rögzítsen egy konkrét adatot (pl. Email cím, Név), amit gyűjtenek, és rendelje hozzá egy meglévő forráshoz.
+            Rögzítsen egy konkrét adatot, rendelje hozzá egy forráshoz és egy folyamathoz.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-4">
 
+          {/* Forrás / rendszer */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
               Melyik forrás/rendszer gyűjti?
@@ -100,6 +103,30 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
             </Select>
           </div>
 
+          {/* ← ÚJ: Kapcsolódó folyamat a folyamatnyilvántartásból */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Kapcsolódó folyamat (folyamatnyilvántartásból)
+            </label>
+            <Select name="processId">
+              <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Válasszon folyamatot... (opcionális)" />
+              </SelectTrigger>
+              <SelectContent>
+                {existingProcesses.length === 0 ? (
+                  <SelectItem value="none" disabled>Nincs még rögzített folyamat!</SelectItem>
+                ) : (
+                  existingProcesses.map((proc) => (
+                    <SelectItem key={proc.id} value={proc.id}>
+                      {proc.process_name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Adattípus kategória */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
               Adattípus Kategória
@@ -120,17 +147,33 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
             </Select>
           </div>
 
+          {/* Konkrét kezelt adat neve (ez kerül a "Bankszámlaszám" helyére) */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-              Konkrét kezelt adat(ok)
+              Konkrét kezelt adat neve
+            </label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 text-slate-400" size={16} />
+              <Input
+                name="collectedData"
+                placeholder="Pl.: Bankszámlaszám, E-mail cím, IP cím..."
+                className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 h-11"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Adatkezelés célja */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Adatkezelés célja
             </label>
             <div className="relative">
               <FileText className="absolute left-3 top-3 text-slate-400" size={16} />
               <Textarea
-                name="collectedData"
-                placeholder="Pl.: Ügyfelek e-mail címe hírlevél küldéséhez, vagy látogatók IP címe."
-                className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 min-h-[100px] resize-none"
-                required
+                name="purpose"
+                placeholder="Pl.: Fizetési tranzakció teljesítéséhez szükséges..."
+                className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 min-h-[80px] resize-none"
               />
             </div>
           </div>

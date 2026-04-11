@@ -1,15 +1,15 @@
 'use client'
 
-import { Search, Globe, Database } from 'lucide-react'
+import { Search, Globe, Database, Building2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect, useRef, RefObject } from 'react'
-
+import { useState, useEffect, useRef } from 'react'
 
 type Result = {
   type: 'website' | 'system'
   id: string
   label: string
   sub: string
+  departments: string[]
 }
 
 export function GlobalSearch() {
@@ -23,7 +23,6 @@ export function GlobalSearch() {
 
   useEffect(() => {
     if (value.length < 2) { setResults([]); setOpen(false); return }
-
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`)
@@ -34,7 +33,6 @@ export function GlobalSearch() {
     }, 250)
   }, [value])
 
-  // Kattintás kívülre → bezárás
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
@@ -53,7 +51,7 @@ export function GlobalSearch() {
     if (!open) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }
     if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(a - 1, 0)) }
-    if (e.key === 'Enter' && active >= 0) { select(results[active]) }
+    if (e.key === 'Enter' && active >= 0) select(results[active])
     if (e.key === 'Escape') setOpen(false)
   }
 
@@ -81,9 +79,23 @@ export function GlobalSearch() {
               <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${r.type === 'website' ? 'bg-blue-50 text-blue-500' : 'bg-emerald-50 text-emerald-500'}`}>
                 {r.type === 'website' ? <Globe size={13} /> : <Database size={13} />}
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex-1 min-w-0">
                 <div className="font-semibold text-[13px] text-slate-800 truncate">{r.label}</div>
                 <div className="text-[11px] text-slate-400 truncate">{r.sub}</div>
+                {/* Szervezeti egység badge-ek — csak system típusnál */}
+                {r.type === 'system' && r.departments?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {r.departments.map((d, j) => (
+                      <span
+                        key={j}
+                        className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-indigo-100"
+                      >
+                        <Building2 size={8} />
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </button>
           ))}

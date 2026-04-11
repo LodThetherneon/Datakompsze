@@ -8,7 +8,7 @@ import { SearchBar } from '@/components/search-bar'
 import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
 import { AcceptSystemButton } from '@/components/accept-system-button'
-import { PenLine, ScanSearch } from 'lucide-react'
+import { PenLine, ScanSearch, GitBranch } from 'lucide-react'
 
 export default async function SystemsPage(props: {
   searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
@@ -25,6 +25,9 @@ export default async function SystemsPage(props: {
   let systems: any[] = []
   let websites: any[] = []
   let pendingCount = 0
+  let processesForSelect: { id: string; process_name: string }[] = []
+  // website_id -> folyamat nevek map
+  let processMap: Record<string, string[]> = {}
 
   if (user) {
     const { data: company } = await supabase
@@ -39,7 +42,6 @@ export default async function SystemsPage(props: {
         websites = webData
         const websiteIds = webData.map((w) => w.id)
 
-        // Összes pending szám (szűrőtől függetlenül, az "Összes jóváhagyása" gombhoz)
         const { count } = await supabase
           .from('systems')
           .select('id', { count: 'exact', head: true })
@@ -62,15 +64,53 @@ export default async function SystemsPage(props: {
         }
 
         const { data: sysData } = await query
-        if (sysData) systems = sysData
+        if (sysData) {
+          systems = sysData
+
+          // process_system_links website_id alapján (system_id = website_id)
+          const { data: links } = await supabase
+            .from('process_system_links')
+            .select('system_id, process_id')
+            .in('system_id', websiteIds)
+
+          if (links && links.length > 0) {
+            const processIds = [...new Set(links.map((l: any) => l.process_id))]
+
+            const { data: processes } = await supabase
+              .from('data_processes')
+              .select('id, process_name')
+              .in('id', processIds)
+
+            const processById: Record<string, string> = {}
+            ;(processes ?? []).forEach((p: any) => {
+              processById[p.id] = p.process_name
+            })
+
+            // website_id -> folyamat nevek
+            links.forEach((link: any) => {
+              if (!processMap[link.system_id]) processMap[link.system_id] = []
+              const name = processById[link.process_id]
+              if (name && !processMap[link.system_id].includes(name)) {
+                processMap[link.system_id].push(name)
+              }
+            })
+          }
+        }
       }
+
+      // Folyamatok a dialoghoz
+      const { data: procData } = await supabase
+        .from('data_processes')
+        .select('id, process_name')
+        .eq('company_id', company.id)
+        .order('process_name', { ascending: true })
+      processesForSelect = procData ?? []
     }
   }
 
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
 
-      {/* === FEJLÉC ÉS GOMBOK === */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Kezelt adattípusok</h1>
@@ -80,8 +120,6 @@ export default async function SystemsPage(props: {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-
-          {/* ÁLLAPOT SZŰRŐ */}
           <div className="flex bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
             <Link
               href={`/systems?filter=all${searchQuery ? `&q=${searchQuery}` : ''}${sourceType !== 'all' ? `&source_type=${sourceType}` : ''}`}
@@ -102,29 +140,24 @@ export default async function SystemsPage(props: {
               Függőben
             </Link>
           </div>
-
-          {/* FORRÁS TÍPUS SZŰRŐ */}
           <SourceTypeFilter />
-
-          {/* ÚJ ADATTÍPUS */}
-          <AddManualSystemDialog addAction={addManualSystem} existingSystems={websites} />
+          <AddManualSystemDialog
+            addAction={addManualSystem}
+            existingSystems={websites}
+            existingProcesses={processesForSelect}
+          />
         </div>
       </header>
 
-      {/* === TÁBLÁZAT === */}
       <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden w-full flex-1">
 
-        {/* KERESŐ SÁV */}
         <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
           <SearchBar defaultValue={searchQuery} />
-          
-          {/* Jobb oldalra tolva */}
           <div className="ml-auto shrink-0">
             <AcceptAllButton pendingCount={pendingCount} />
           </div>
         </div>
 
-        {/* Táblázat Fejléc */}
         <div className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
           <div>Rendszer neve / Típusa</div>
@@ -134,7 +167,6 @@ export default async function SystemsPage(props: {
           <div className="text-right pr-4">Műveletek</div>
         </div>
 
-        {/* Táblázat Sorok */}
         <div className="divide-y divide-slate-50">
           {systems.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
@@ -153,14 +185,20 @@ export default async function SystemsPage(props: {
               const website = websites.find((w) => w.id === sys.website_id)
               const isPending = sys.status === 'pending'
               const isManual = sys.source_type === 'manual'
+              // website_id alapú processMap — de badge csak akkor jelenik meg,
+              // ha a sor collected_data-ja egyezik egy folyamat nevével
+              const websiteProcessNames = processMap[sys.website_id] ?? []
+              const linkedProcesses = websiteProcessNames.filter(
+                (name) => sys.collected_data === name
+              )
 
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-5 items-center hover:bg-slate-50/80 transition-colors group"
+                  className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
                 >
                   {/* Ikon */}
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center pt-1">
                     <span
                       title={isManual ? 'Manuálisan rögzítve' : 'Scanner által azonosítva'}
                       className={`inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
@@ -173,7 +211,7 @@ export default async function SystemsPage(props: {
                     </span>
                   </div>
 
-                  {/* Rendszer neve — fix 280px, max 2 sor */}
+                  {/* Rendszer neve + folyamat badge csak a saját sornál */}
                   <div className="min-w-0">
                     <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
                       {sys.system_name}
@@ -181,15 +219,28 @@ export default async function SystemsPage(props: {
                     <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
                       {sys.collected_data || 'Nincs megadva adat'}
                     </div>
+                    {linkedProcesses.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {linkedProcesses.map((name, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100 max-w-[220px] truncate"
+                          >
+                            <GitBranch size={9} className="shrink-0" />
+                            <span className="truncate">{name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Adatkezelés célja — fix 200px */}
-                  <div className="text-[13px] font-medium text-slate-600 line-clamp-2 leading-snug">
+                  {/* Adatkezelés célja */}
+                  <div className="text-[13px] font-medium text-slate-600 line-clamp-2 leading-snug pt-0.5">
                     {sys.purpose || 'Nincs megadva cél'}
                   </div>
 
-                  {/* Forrás — fix 160px */}
-                  <div>
+                  {/* Forrás */}
+                  <div className="pt-0.5">
                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold truncate max-w-full inline-block">
                       {website
                         ? website.status === 'offline'
@@ -199,8 +250,8 @@ export default async function SystemsPage(props: {
                     </span>
                   </div>
 
-                  {/* Státusz — fix 140px */}
-                  <div>
+                  {/* Státusz */}
+                  <div className="pt-0.5">
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -215,7 +266,7 @@ export default async function SystemsPage(props: {
                   </div>
 
                   {/* Műveletek */}
-                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
                     {isPending && <AcceptSystemButton id={sys.id} />}
                     <DeleteConfirmDialog
                       id={sys.id}

@@ -29,7 +29,6 @@ export default async function DataRegistryPage(props: {
       .from('companies').select('id').eq('user_id', user.id).single()
 
     if (company) {
-      // Weboldalak / rendszerek lekérése csatoláshoz
       const { data: webData } = await supabase
         .from('websites')
         .select('id, url, status')
@@ -37,7 +36,6 @@ export default async function DataRegistryPage(props: {
         .order('created_at', { ascending: false })
       allWebsites = webData ?? []
 
-      // Szervezeti egységek
       const { data: deptData } = await supabase
         .from('departments')
         .select('*')
@@ -45,7 +43,6 @@ export default async function DataRegistryPage(props: {
         .order('name', { ascending: true })
       departments = deptData ?? []
 
-      // Folyamatok + csatolt website id-k
       let query = supabase
         .from('data_processes')
         .select('*, process_system_links(system_id)')
@@ -68,7 +65,6 @@ export default async function DataRegistryPage(props: {
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
 
-      {/* FEJLÉC */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Folyamatnyilvántartás</h1>
@@ -84,21 +80,19 @@ export default async function DataRegistryPage(props: {
           />
           <AddProcessDialog
             addAction={addDataProcess}
-            addDepartmentAction={addDepartment}   // ← ez az új sor
+            addDepartmentAction={addDepartment}
             departments={departments}
             knownProcessNames={knownProcessNames}
           />
         </div>
       </header>
 
-      {/* TÁBLÁZAT */}
       <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden w-full flex-1">
 
         <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
           <SearchBar defaultValue={searchQuery} />
         </div>
 
-        {/* Fejléc */}
         <div className="grid grid-cols-[180px_200px_1fr_130px_130px_72px] gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
           <div className="flex items-center gap-1.5"><FileText size={11} /> Folyamat neve</div>
@@ -108,7 +102,6 @@ export default async function DataRegistryPage(props: {
           <div className="text-right pr-2">Műv.</div>
         </div>
 
-        {/* Sorok */}
         <div className="divide-y divide-slate-50">
           {processes.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
@@ -136,7 +129,6 @@ export default async function DataRegistryPage(props: {
                   key={proc.id}
                   className="grid grid-cols-[180px_200px_1fr_130px_130px_72px] gap-3 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
                 >
-                  {/* Szervezeti egység */}
                   <div className="min-w-0">
                     <div className="font-bold text-[13px] text-slate-800 truncate">{proc.department_name}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{createdAt}</div>
@@ -151,27 +143,22 @@ export default async function DataRegistryPage(props: {
                     )}
                   </div>
 
-                  {/* Folyamat neve */}
                   <div className="font-semibold text-[13px] text-slate-700 line-clamp-2 leading-snug pt-0.5">
                     {proc.process_name}
                   </div>
 
-                  {/* Cél */}
                   <div className="text-[13px] text-slate-600 line-clamp-2 leading-snug pt-0.5">
                     {proc.purpose || '—'}
                   </div>
 
-                  {/* Megőrzési idő — truncate, 1 sor */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.retention_period}>
                     {proc.retention_period || '—'}
                   </div>
 
-                  {/* Tárolás helye — truncate, 1 sor */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.storage_location}>
                     {proc.storage_location || '—'}
                   </div>
 
-                  {/* Műveletek */}
                   <div className="flex justify-end items-center gap-1 pr-1 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
                     <LinkWebsiteDialog
                       processId={proc.id}
