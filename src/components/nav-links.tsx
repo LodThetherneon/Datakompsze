@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Database, Settings, Building2 } from 'lucide-react'
+import { LayoutDashboard, FileText, Database, Settings, Building2, FolderKanban } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Irányítópult', icon: LayoutDashboard },
   { href: '/systems', label: 'Kezelt adattípusok', icon: Database },
+  // Új menüpont hozzáadása:
+  { href: '/data-registry', label: 'Folyamatnyilvántartás', icon: FolderKanban },
   { href: '/policies', label: 'Tájékoztatók', icon: FileText },
   { href: '/company', label: 'Cégadatok', icon: Building2 },
   { href: '/settings', label: 'Előfizetés', icon: Settings },
