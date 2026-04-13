@@ -91,7 +91,7 @@ export async function addManualSystem(formData: FormData) {
     purpose:         dataTypeCat,
     collected_data:  collectedData,
     status:          'active',
-    source_type:     'process',
+    source_type: (formData.get('sourceType') as string) || 'manual',
     retention_until: retentionUntilRaw,
     retention_display: retentionDisplay ?? null,
   }])
@@ -173,7 +173,7 @@ export async function generatePolicy(formData: FormData) {
   const thirdParties  = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap'))
   const cookieSystems = thirdParties
   const formSystems   = allSystems.filter(s => s.system_name?.includes('Webes űrlap'))
-  const manualSystems = allSystems.filter(s => s.source_type === 'manual')
+  const manualSystems = allSystems.filter(s => s.source_type === 'manual' || s.source_type === 'process')
 
   const dpoSection = company.dpo_name
     ? `<p>Az adatkezelő adatvédelmi tisztviselőjének neve: <strong>${company.dpo_name}</strong><br>
@@ -195,7 +195,7 @@ export async function generatePolicy(formData: FormData) {
 
   // Timezone-safe megőrzési idő: YYYY-MM-DD → lokális dátum, nincs UTC shift
   function retentionPeriod(s: any): string {
-    if (s.source_type === 'manual' && s.retention_until) {
+    if ((s.source_type === 'manual' || s.source_type === 'process') && s.retention_until) {
       const raw = String(s.retention_until)
       const dateParts = raw.split('-').map(Number)
       if (dateParts.length === 3 && dateParts.every(n => !isNaN(n))) {
