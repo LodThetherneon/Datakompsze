@@ -9,10 +9,7 @@ import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
 import { RetentionEditor } from '@/components/retention-editor'
 import { AcceptSystemButton } from '@/components/accept-system-button'
-import {
-  PenLine, ScanSearch, Tag, Database,
-  Globe, CheckCircle2, GitBranch,
-} from 'lucide-react'
+import { PenLine, ScanSearch, Tag, Database, Globe, CheckCircle2, GitBranch, Settings2 } from 'lucide-react'
 
 export default async function SystemsPage(props: {
   searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
@@ -137,7 +134,7 @@ export default async function SystemsPage(props: {
             <CheckCircle2 size={11} />
             Státusz
           </div>
-          <div className="text-right pr-4">Műveletek</div>
+          <div className="flex items-center justify-end gap-1.5 pr-4"><Settings2 size={11} /> Műveletek</div>
         </div>
 
         {/* Sorok */}

@@ -9,10 +9,8 @@ import { DeleteProcessButton } from '@/components/delete-process-button'
 import { LinkWebsiteDialog } from '@/components/link-website-dialog'
 import { ManageDepartmentsDialog } from '@/components/manage-departments-dialog'
 import { SearchBar } from '@/components/search-bar'
-import {
-  Search, Building2, FileText, Clock,
-  HardDrive, Target, Globe,
-} from 'lucide-react'
+import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2 } from 'lucide-react'
+
 
 export default async function DataRegistryPage(props: {
   searchParams: Promise<{ q?: string }>
@@ -99,11 +97,11 @@ export default async function DataRegistryPage(props: {
         {/* Fejléc – 6 egyenletes oszlop ikonokkal */}
         <div className="grid grid-cols-[1.2fr_1.4fr_2fr_1fr_1fr_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
-          <div className="flex items-center gap-1.5"><FileText size={11} /> Folyamat neve</div>
+          <div className="flex items-center gap-1.5"><Tag size={11} /> Folyamat neve</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
           <div className="flex items-center gap-1.5"><Clock size={11} /> Megőrzési idő</div>
           <div className="flex items-center gap-1.5"><HardDrive size={11} /> Tárolás helye</div>
-          <div className="text-right pr-2">Műveletek</div>
+          <div className="flex items-center justify-end gap-1.5 pr-2"><Settings2 size={11} className="shrink-0" /> Műveletek</div>
         </div>
 
         <div className="divide-y divide-slate-50">

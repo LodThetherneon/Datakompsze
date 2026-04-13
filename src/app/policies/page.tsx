@@ -1,9 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { deletePolicy, restorePolicy } from "@/app/actions";
-import {
-  FileText, Clock, Filter, RotateCcw,
-  RefreshCw, Trash2, Sparkles, ChevronDown,
-} from "lucide-react";
+import { FileText, Clock, Filter, RotateCcw, RefreshCw, Trash2, Sparkles, ChevronDown, Globe, Tag, Settings2 } from 'lucide-react'
 import { PolicyDownloadButtons } from '@/components/policy-download-buttons'
 import { GeneratePolicyForm } from '@/components/generate-policy-form'
 
@@ -164,7 +161,7 @@ export default async function PoliciesPage({
             Még nincs generált tájékoztató
           </h3>
           <p className="text-[14px] text-slate-500 max-w-md mx-auto">
-            Válassz ki egy forrást, és kattints a "Generálás" gombra.
+            Válassz ki egy forrást fent, és kattints a "Generálás" gombra.
           </p>
         </div>
       )}
@@ -252,10 +249,10 @@ export default async function PoliciesPage({
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Forrás</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Verzió</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest">Érvényesség</th>
-                  <th className="px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest">Műveletek</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest"><span className="flex items-center gap-1.5"><Globe size={11} /> Forrás</span></th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest"><span className="flex items-center gap-1.5"><Tag size={11} /> Verzió</span></th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest"><span className="flex items-center gap-1.5"><Clock size={11} /> Érvényesség</span></th>
+                  <th className="px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-widest"><span className="flex items-center justify-end gap-1.5"><Settings2 size={11} /> Műveletek</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
