@@ -110,7 +110,7 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
         </DialogContent>
       </Dialog>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-8 [&_input]:text-slate-800">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-8 [&_input:-webkit-autofill]:[box-shadow:0_0_0_1000px_#f8fafc_inset] [&_input:-webkit-autofill]:![webkit-text-fill-color:#1e293b]">
 
         {/* --- VÁLLALKOZÁS ALAPADATAI --- */}
         <div className="space-y-6">

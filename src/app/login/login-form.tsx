@@ -51,7 +51,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
     setStep(2)
   }
 
-  const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-[14px] text-white placeholder-white/30 focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/60 outline-none transition-all"
+  const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-[14px] text-white placeholder-white/30 focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/60 outline-none transition-all [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![webkit-text-fill-color:white]"
   const labelClass = "block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2"
 
   return (
