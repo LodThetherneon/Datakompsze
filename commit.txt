@@ -1,3 +1,3 @@
 git add .
-git commit -m "szöveg"
+git commit -m "friss gombok"
 git push origin main
