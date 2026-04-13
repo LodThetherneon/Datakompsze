@@ -1,1 +1,34 @@
-aW1wb3J0IHsgTmV4dFJlcXVlc3QsIE5leHRSZXNwb25zZSB9IGZyb20gJ25leHQvc2VydmVyJwoKZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIFBPU1QocmVxOiBOZXh0UmVxdWVzdCkgewogIHRyeSB7CiAgICBjb25zdCBib2R5ID0gYXdhaXQgcmVxLmpzb24oKQogICAgY29uc3QgeyB3ZWJzaXRlSWQsIHVybCB9ID0gYm9keQoKICAgIGlmICghd2Vic2l0ZUlkIHx8ICF1cmwpIHsKICAgICAgcmV0dXJuIE5leHRSZXNwb25zZS5qc29uKHsgZXJyb3I6ICdIacOhbnl6w7MgcGFyYW3DqXRlcmVrJyB9LCB7IHN0YXR1czogNDAwIH0pCiAgICB9CgogICAgY29uc3QgZWRnZUZ1bmN0aW9uVXJsID0gYCR7cHJvY2Vzcy5lbnYuTkVYVF9QVUJMSUNfU1VUUEFCQVNFX1VSTH0vZnVuY3Rpb25zL3YxL3NjYW4td2Vic2l0ZWAKCiAgICBjb25zdCByZXNwb25zZSA9IGF3YWl0IGZldGNoKGVkZ2VGdW5jdGlvblVybCwgewogICAgICBtZXRob2Q6ICdQT1NUJywKICAgICAgaGVhZGVyczogewogICAgICAgICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsCiAgICAgICAgJ0F1dGhvcml6YXRpb24nOiBgQmVhcmVyICR7cHJvY2Vzcy5lbnYuU1VUUEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVl9YCwKICAgICAgfSwKICAgICAgYm9keTogSlNPTi5zdHJpbmdpZnkoeyB3ZWJzaXRlSWQsIHVybCB9KSwKICAgIH0pCgogICAgY29uc3QgZGF0YSA9IGF3YWl0IHJlc3BvbnNlLmpzb24oKQoKICAgIGlmICghcmVzcG9uc2Uub2spIHsKICAgICAgcmV0dXJuIE5leHRSZXNwb25zZS5qc29uKGRhdGEsIHsgc3RhdHVzOiByZXNwb25zZS5zdGF0dXMgfSkKICAgIH0KCiAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oZGF0YSkKICB9IGNhdGNoIChlcnIpIHsKICAgIGNvbnNvbGUuZXJyb3IoJ1NjYW4gcHJveHkgaGliYTonLCBlcnIpCiAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oeyBlcnJvcjogJ1NjYW5uZXIgaGliYScgfSwgeyBzdGF0dXM6IDUwMCB9KQogIH0KfQ==
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { websiteId, url } = body
+
+    if (!websiteId || !url) {
+      return NextResponse.json({ error: 'Hiányzó paraméterek' }, { status: 400 })
+    }
+
+    const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/scan-website`
+
+    const response = await fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ websiteId, url }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status })
+    }
+
+    return NextResponse.json(data)
+  } catch (err) {
+    console.error('Scan proxy hiba:', err)
+    return NextResponse.json({ error: 'Scanner hiba' }, { status: 500 })
+  }
+}
