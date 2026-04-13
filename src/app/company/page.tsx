@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
-import { SettingsForm } from "@/app/settings/settings-form";
-import { saveCompanySettings, deleteCompanyData } from "@/app/settings/actions";
+import { SettingsForm } from "@/app/settings/settings-form"
+import { saveCompanySettings, deleteCompanyData } from "@/app/settings/actions"
 
 export default async function CompanyPage() {
   const supabase = await createClient();
@@ -22,7 +22,7 @@ export default async function CompanyPage() {
         </p>
       </header>
 
-      <SettingsForm company={company} saveAction={saveCompanySettings} deleteAction={deleteCompanyData} />
+      <SettingsForm company={company} saveAction={saveCompanySettings} deleteAction={deleteCompanyData}    />
     </div>
   );
 }

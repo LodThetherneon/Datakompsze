@@ -2,7 +2,6 @@ import { createClient } from "@/utils/supabase/server";
 import { changePlan } from "./actions";
 import { Crown, Zap, Check, Infinity } from "lucide-react";
 
-
 const PLANS = [
   {
     id: 'free',

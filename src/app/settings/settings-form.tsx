@@ -2,8 +2,18 @@
 
 import { useIMask } from 'react-imask'
 import { useTransition, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { useToast } from '@/components/toast-provider'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 type Company = {
   id: string
@@ -30,6 +40,7 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
   const { success, error } = useToast()
   const [isPending, startTransition] = useTransition()
   const [showConfirm, setShowConfirm] = useState(false)
+  const router = useRouter()
 
   const { ref: taxRef } = useIMask({ mask: '00000000-0-00' })
   const { ref: regRef } = useIMask({ mask: '00-00-000000' })
@@ -38,11 +49,11 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-
     startTransition(async () => {
       try {
         await saveAction(formData)
         success('Cégadatok sikeresen mentve!')
+        router.refresh()
       } catch (err: any) {
         error(err?.message ?? 'Hiba történt a mentés során.')
       }
@@ -55,6 +66,7 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
         await deleteAction()
         success('Cégadatok sikeresen törölve!')
         setShowConfirm(false)
+        router.refresh()
       } catch (err: any) {
         error(err?.message ?? 'Hiba történt a törlés során.')
         setShowConfirm(false)
@@ -64,34 +76,41 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
 
   return (
     <>
-      {/* MEGERŐSÍTŐ MODAL */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 border border-slate-100">
-            <h3 className="text-[16px] font-bold text-slate-800 mb-2">Biztosan törli az összes cégadatot?</h3>
-            <p className="text-[13px] text-slate-500 mb-6">Ez a művelet visszafordíthatatlan. Minden megadott adat törlésre kerül.</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowConfirm(false)}
-                className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-              >
-                Mégsem
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isPending}
-                className="px-5 py-2.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-60"
-              >
-                {isPending ? 'Törlés...' : 'Igen, törlöm'}
-              </button>
+      {/* MEGERŐSÍTŐ DIALOG */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl border-slate-100 shadow-xl bg-white">
+          <DialogHeader>
+            <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center mb-4">
+              <AlertTriangle className="text-rose-500" size={24} />
             </div>
-          </div>
-        </div>
-      )}
+            <DialogTitle className="text-xl font-bold text-slate-800">Cégadatok törlése</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500 pt-1">
+              Ez a művelet <strong className="text-slate-800">visszafordíthatatlan</strong>. Minden megadott cégadat törlésre kerül.
+            </DialogDescription>
+          </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-8">
+          <DialogFooter className="gap-2 sm:gap-0 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowConfirm(false)}
+              className="border-slate-200 text-slate-600"
+            >
+              Mégsem
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDelete}
+              disabled={isPending}
+              className="bg-rose-600 hover:bg-rose-700 text-white shadow-md"
+            >
+              {isPending ? 'Törlés...' : 'Végleges törlés'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-8 [&_input]:text-slate-800">
 
         {/* --- VÁLLALKOZÁS ALAPADATAI --- */}
         <div className="space-y-6">
