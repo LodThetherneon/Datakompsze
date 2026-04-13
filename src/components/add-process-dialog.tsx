@@ -304,7 +304,7 @@ export function AddProcessDialog({
                   Új adatkezelési folyamat
                 </DialogTitle>
                 <DialogDescription className="text-sm text-slate-500 pt-1">
-                  Rögzítsen egy adatkezelési tevékenységet a GDPR 30. cikk alapján.
+                  Rögzítsen egy új adatkezelési tevékenységet. 
                 </DialogDescription>
               </DialogHeader>
 
@@ -359,7 +359,7 @@ export function AddProcessDialog({
                 </div>
 
                 {/* Megőrzési idő (szám + egység) + Tárolás helye */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 items-end">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                       <Clock size={11} />
@@ -370,6 +370,7 @@ export function AddProcessDialog({
                         type="number"
                         min="1"
                         max="999"
+                        required
                         value={retentionValue}
                         onChange={(e) => setRetentionValue(e.target.value)}
                         placeholder="Pl.: 5"
@@ -386,11 +387,6 @@ export function AddProcessDialog({
                         </SelectContent>
                       </Select>
                     </div>
-                    {retentionValue && parseInt(retentionValue, 10) > 0 && (
-                      <p className="text-[11px] text-emerald-600 font-medium pl-0.5">
-                        = {retentionValue} {retentionUnit}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -399,6 +395,7 @@ export function AddProcessDialog({
                     </label>
                     <input
                       name="storage_location"
+                      required
                       placeholder="Pl.: Neptun, Excel..."
                       className="w-full h-11 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[14px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                     />

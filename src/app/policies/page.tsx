@@ -97,7 +97,6 @@ export default async function PoliciesPage({
                   </div>
                 </div>
               </div>
-
               <GeneratePolicyForm websites={websites} />
             </div>
           </div>
