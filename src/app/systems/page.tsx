@@ -10,7 +10,7 @@ import { SourceTypeFilter } from '@/components/source-type-filter'
 import { AcceptSystemButton } from '@/components/accept-system-button'
 import {
   PenLine, ScanSearch, Tag, Database,
-  Globe, CheckCircle2,
+  Globe, CheckCircle2, GitBranch,
 } from 'lucide-react'
 
 export default async function SystemsPage(props: {
@@ -51,7 +51,8 @@ export default async function SystemsPage(props: {
         pendingCount = count ?? 0
 
         let query = supabase
-          .from('systems').select('*')
+          .from('systems')
+          .select('*')
           .in('website_id', websiteIds)
           .order('created_at', { ascending: false })
 
@@ -83,7 +84,6 @@ export default async function SystemsPage(props: {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* ÁLLAPOT SZŰRŐ */}
           <div className="flex bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
             {(['all', 'active', 'pending'] as const).map((f) => (
               <Link
@@ -113,8 +113,8 @@ export default async function SystemsPage(props: {
           </div>
         </div>
 
-        {/* Táblázat fejléc – ikonokkal */}
-        <div className="grid grid-cols-[2rem_280px_200px_160px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        {/* Táblázat fejléc */}
+        <div className="grid grid-cols-[2rem_1fr_1fr_160px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
           <div className="flex items-center gap-1.5">
             <Tag size={11} />
@@ -155,6 +155,9 @@ export default async function SystemsPage(props: {
               const isPending = sys.status === 'pending'
               const isManual  = sys.source_type === 'manual'
 
+              // Ha van collected_data (= folyamat neve csatoláskor), az a "folyamat" sor
+              const isLinkedFromProcess = isManual && !!sys.collected_data?.trim()
+
               // Kezelés vége – timezone-safe formázás
               let retentionLabel: string | null = null
               if (isManual && sys.retention_until) {
@@ -170,17 +173,15 @@ export default async function SystemsPage(props: {
                 }
               }
 
-              // Megőrzési idő szöveges megjelenítés (pl. "5 év")
-              const retentionDisplay: string | null =
-                sys.retention_display ?? null
+              const retentionDisplay: string | null = sys.retention_display ?? null
 
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_280px_200px_160px_160px_7rem] gap-4 px-5 py-5 items-center hover:bg-slate-50/80 transition-colors group"
+                  className="grid grid-cols-[2rem_1fr_1fr_160px_160px_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group"
                 >
                   {/* Ikon */}
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center pt-0.5">
                     <span
                       title={isManual ? 'Manuálisan rögzítve' : 'Scanner által azonosítva'}
                       className={`inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
@@ -193,7 +194,11 @@ export default async function SystemsPage(props: {
                     </span>
                   </div>
 
-                  {/* Adattípus neve + kategória + kezelés vége */}
+                  {/* Adattípus neve / Kategória
+                      - Fent: system_name (a webhely neve/URL)
+                      - Középen: purpose (kategória)
+                      - Alul: collected_data = folyamat neve (ha csatolásból jött)
+                  */}
                   <div className="min-w-0">
                     <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
                       {sys.system_name}
@@ -201,7 +206,16 @@ export default async function SystemsPage(props: {
                     <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
                       {sys.purpose || 'Nincs megadva kategória'}
                     </div>
-                    {/* Megőrzési idő: "5 év" formátum prioritás, különben pontos dátum */}
+                    {/* Csatolt folyamat neve – csak ha folyamatból jött */}
+                    {isLinkedFromProcess && (
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <GitBranch size={10} className="text-emerald-500 shrink-0" />
+                        <span className="text-[11px] text-emerald-700 font-semibold truncate">
+                          {sys.collected_data}
+                        </span>
+                      </div>
+                    )}
+                    {/* Megőrzési idő */}
                     {(retentionDisplay || retentionLabel) && (
                       <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                         <span>🗓</span>
@@ -213,13 +227,34 @@ export default async function SystemsPage(props: {
                     )}
                   </div>
 
-                  {/* Kezelt adatok */}
-                  <div className="text-[13px] font-medium text-slate-600 line-clamp-2 leading-snug">
-                    {sys.collected_data || 'Nincs megadva'}
+                  {/* Kezelt adatok
+                      - Ha folyamatból csatolt: sys.purpose = adatkezelés célja
+                      - Különben: sys.collected_data
+                  */}
+                  <div className="min-w-0 pt-0.5">
+                    {isLinkedFromProcess ? (
+                      // Folyamatból csatolt: purpose = adatkezelés célja
+                      sys.purpose?.trim() ? (
+                        <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
+                          {sys.purpose}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
+                      )
+                    ) : (
+                      // Scanner vagy manuális (nem folyamatból): collected_data
+                      sys.collected_data?.trim() ? (
+                        <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
+                          {sys.collected_data}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
+                      )
+                    )}
                   </div>
 
                   {/* Forrás */}
-                  <div>
+                  <div className="pt-0.5">
                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold truncate max-w-full inline-block">
                       {website
                         ? website.status === 'offline'
@@ -230,7 +265,7 @@ export default async function SystemsPage(props: {
                   </div>
 
                   {/* Státusz */}
-                  <div>
+                  <div className="pt-0.5">
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -245,7 +280,7 @@ export default async function SystemsPage(props: {
                   </div>
 
                   {/* Műveletek */}
-                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
                     {isPending && <AcceptSystemButton id={sys.id} />}
                     <DeleteConfirmDialog
                       id={sys.id}

@@ -9,7 +9,10 @@ import { DeleteProcessButton } from '@/components/delete-process-button'
 import { LinkWebsiteDialog } from '@/components/link-website-dialog'
 import { ManageDepartmentsDialog } from '@/components/manage-departments-dialog'
 import { SearchBar } from '@/components/search-bar'
-import { Search, Building2, FileText, Clock, HardDrive } from 'lucide-react'
+import {
+  Search, Building2, FileText, Clock,
+  HardDrive, Target, Globe,
+} from 'lucide-react'
 
 export default async function DataRegistryPage(props: {
   searchParams: Promise<{ q?: string }>
@@ -93,10 +96,11 @@ export default async function DataRegistryPage(props: {
           <SearchBar defaultValue={searchQuery} />
         </div>
 
-        <div className="grid grid-cols-[180px_200px_1fr_130px_130px_72px] gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        {/* Fejléc – 6 egyenletes oszlop ikonokkal */}
+        <div className="grid grid-cols-[160px_180px_1fr_120px_140px_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
           <div className="flex items-center gap-1.5"><FileText size={11} /> Folyamat neve</div>
-          <div>Adatkezelés célja</div>
+          <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
           <div className="flex items-center gap-1.5"><Clock size={11} /> Megőrzési idő</div>
           <div className="flex items-center gap-1.5"><HardDrive size={11} /> Tárolás helye</div>
           <div className="text-right pr-2">Műv.</div>
@@ -127,15 +131,22 @@ export default async function DataRegistryPage(props: {
               return (
                 <div
                   key={proc.id}
-                  className="grid grid-cols-[180px_200px_1fr_130px_130px_72px] gap-3 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
+                  className="grid grid-cols-[160px_180px_1fr_120px_140px_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
                 >
+                  {/* Szervezeti egység + dátum + csatolt weboldalak */}
                   <div className="min-w-0">
-                    <div className="font-bold text-[13px] text-slate-800 truncate">{proc.department_name}</div>
+                    <div className="font-bold text-[13px] text-slate-800 truncate">
+                      {proc.department_name}
+                    </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{createdAt}</div>
                     {linkedWebsites.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {linkedWebsites.map((w) => (
-                          <span key={w.id} className="inline-block bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 truncate max-w-[140px]">
+                          <span
+                            key={w.id}
+                            className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 truncate max-w-[140px]"
+                          >
+                            <Globe size={8} />
                             {w.status === 'offline' ? w.url : w.url.replace(/^https?:\/\//, '')}
                           </span>
                         ))}
@@ -143,22 +154,27 @@ export default async function DataRegistryPage(props: {
                     )}
                   </div>
 
+                  {/* Folyamat neve */}
                   <div className="font-semibold text-[13px] text-slate-700 line-clamp-2 leading-snug pt-0.5">
                     {proc.process_name}
                   </div>
 
-                  <div className="text-[13px] text-slate-600 line-clamp-2 leading-snug pt-0.5">
+                  {/* Adatkezelés célja */}
+                  <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug pt-0.5">
                     {proc.purpose || '—'}
                   </div>
 
+                  {/* Megőrzési idő */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.retention_period}>
                     {proc.retention_period || '—'}
                   </div>
 
+                  {/* Tárolás helye */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.storage_location}>
                     {proc.storage_location || '—'}
                   </div>
 
+                  {/* Műveletek */}
                   <div className="flex justify-end items-center gap-1 pr-1 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
                     <LinkWebsiteDialog
                       processId={proc.id}
