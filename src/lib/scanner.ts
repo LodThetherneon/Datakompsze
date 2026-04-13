@@ -3,61 +3,6 @@ import { createClient } from '@/utils/supabase/server'
 
 // ─── Tracker minták ───────────────────────────────────────────────────────────
 
-const RETENTION_MAP: Record<string, string> = {
-  // Trackerek
-  'Google Analytics': '2 év',
-  'Google Tag Manager': '2 év',
-  'Facebook Pixel': '2 év',
-  'Hotjar': '1 év',
-  'Microsoft Clarity': '1 év',
-  'Mixpanel': '2 év',
-  'Amplitude': '2 év',
-  'FullStory': '1 év',
-  'Heap Analytics': '2 év',
-  'Smartlook': '1 év',
-  'HubSpot': '3 év',
-  'Intercom': '3 év',
-  'Zendesk Chat': '3 év',
-  'Tawk.to': '1 év',
-  'Crisp Chat': '1 év',
-  'Stripe': '5 év',
-  'PayPal': '5 év',
-  'Barion': '5 év',
-  'Shopify': '5 év',
-  'WooCommerce': '5 év',
-  'Mailchimp': '2 év',
-  'Klaviyo': '2 év',
-  'Cloudflare': '1 év',
-  'LinkedIn Insight Tag': '2 év',
-  'TikTok Pixel': '2 év',
-  'Twitter/X Ads Pixel': '2 év',
-  'Google Ads / DoubleClick': '2 év',
-  'Snapchat Pixel': '2 év',
-  'Pinterest Tag': '2 év',
-  'Plausible Analytics': '1 év',
-  'Matomo': '2 év',
-  'Segment': '2 év',
-  'Cookiebot': '1 év',
-  'CookieHub': '1 év',
-  'Cookie Script': '1 év',
-  'Termly': '1 év',
-  // Form mezők
-  'E-mail cím': '3 év',
-  'Telefonszám': '3 év',
-  'Teljes név / Keresztnév / Vezetéknév': '5 év',
-  'Postai / Számlázási cím': '5 év',
-  'Születési dátum / Kor': '5 év',
-  'Jelszó (hash-elve tárolva)': 'Fiók fennállásáig',
-  'Bankkártya adatok': '5 év',
-  'Üzenet / Megjegyzés tartalma': '2 év',
-  'Cégnév / Szervezet neve': '5 év',
-  'Adószám / Adóazonosító': '8 év',
-  'Felhasználónév': 'Fiók fennállásáig',
-  'Nem / Nemi azonosság': '3 év',
-  'Hírlevél feliratkozás': '3 év',
-  'Üzenet tárgya': '2 év',
-}
-
 const KNOWN_TRACKERS = [
   { pattern: /google-analytics\.com|gtag\/js|ga\(|_gaq/i, name: 'Google Analytics', purpose: 'Látogatottsági analitika', collected_data: 'IP-cím, böngésző adatok, oldalmegtekintések, munkamenet adatok' },
   { pattern: /googletagmanager\.com|gtm\.js/i, name: 'Google Tag Manager', purpose: 'Marketing és analitikai tagek kezelése', collected_data: 'Süti azonosítók, kattintási és viselkedési adatok' },
@@ -110,8 +55,7 @@ const META_TRACKERS = [
   { pattern: /facebook-domain-verification/i, name: 'Facebook Domain Verification', purpose: 'Facebook hirdetési domain hitelesítés', collected_data: 'Domain tulajdonjog, hirdetési teljesítmény adatok' },
 ]
 
-// ─── HTTP header alapú tracker detektálás (ÚJ RÉTEG) ─────────────────────────
-// Sok tracker server-side headert is beállít (pl. Cloudflare, Shopify)
+// ─── HTTP header alapú tracker detektálás ────────────────────────────────────
 
 const HEADER_TRACKERS: { header: string; value: RegExp; name: string; purpose: string; collected_data: string }[] = [
   { header: 'server', value: /cloudflare/i, name: 'Cloudflare', purpose: 'CDN, biztonság és teljesítményoptimalizálás', collected_data: 'IP-cím, HTTP fejlécek, teljesítmény metrikák' },
@@ -147,6 +91,75 @@ const FORM_FIELD_PATTERNS = [
   { pattern: /subject|targy|tema/i, data: 'Üzenet tárgya', purpose: 'Kapcsolatfelvétel, ügyfélszolgálat' },
 ]
 
+// ─── GDPR-alapú megőrzési idők ────────────────────────────────────────────────
+
+const RETENTION_MAP: Record<string, string | null> = {
+  // Trackerek
+  'Google Analytics': '2 év',
+  'Google Tag Manager': '2 év',
+  'Google Search Console': '2 év',
+  'Google Sign-In': '3 év',
+  'Google Ads / DoubleClick': '2 év',
+  'Facebook Pixel': '2 év',
+  'Facebook SDK': '2 év',
+  'Facebook Domain Verification': '2 év',
+  'Hotjar': '1 év',
+  'Microsoft Clarity': '1 év',
+  'Plausible Analytics': '1 év',
+  'Matomo': '2 év',
+  'Mixpanel': '2 év',
+  'Amplitude': '2 év',
+  'FullStory': '1 év',
+  'Heap Analytics': '2 év',
+  'Smartlook': '1 év',
+  'Segment': '2 év',
+  'HubSpot': '3 év',
+  'Intercom': '3 év',
+  'Zendesk Chat': '3 év',
+  'Tawk.to': '1 év',
+  'Crisp Chat': '1 év',
+  'Stripe': '5 év',
+  'PayPal': '5 év',
+  'Barion': '5 év',
+  'Shopify': '5 év',
+  'WooCommerce': '5 év',
+  'Mailchimp': '2 év',
+  'Klaviyo': '2 év',
+  'Cloudflare': '1 év',
+  'LinkedIn Insight Tag': '2 év',
+  'TikTok Pixel': '2 év',
+  'Twitter/X Ads Pixel': '2 év',
+  'Twitter/X Widget': '2 év',
+  'Snapchat Pixel': '2 év',
+  'Pinterest Tag': '2 év',
+  'Bing Webmaster Tools': '2 év',
+  'Yandex Webmaster': '2 év',
+  'Cookiebot': '1 év',
+  'CookieHub': '1 év',
+  'Cookie Script': '1 év',
+  'Termly': '1 év',
+  'Wix': '2 év',
+  'Squarespace': '2 év',
+  'Drupal CMS': '2 év',
+  'WordPress': '2 év',
+  'Biztonsági HTTP fejlécek': null,
+  // Form mezők
+  'E-mail cím': '3 év',
+  'Telefonszám': '3 év',
+  'Teljes név / Keresztnév / Vezetéknév': '5 év',
+  'Postai / Számlázási cím': '5 év',
+  'Születési dátum / Kor': '5 év',
+  'Jelszó (hash-elve tárolva)': 'Fiók fennállásáig',
+  'Bankkártya adatok': '5 év',
+  'Üzenet / Megjegyzés tartalma': '2 év',
+  'Cégnév / Szervezet neve': '5 év',
+  'Adószám / Adóazonosító': '8 év',
+  'Felhasználónév': 'Fiók fennállásáig',
+  'Nem / Nemi azonosság': '3 év',
+  'Hírlevél feliratkozás': '3 év',
+  'Üzenet tárgya': '2 év',
+}
+
 // ─── Segédfüggvények ──────────────────────────────────────────────────────────
 
 function normalizeUrl(href: string, base: string): string | null {
@@ -168,13 +181,12 @@ function isSameDomain(url: string, base: string): boolean {
   }
 }
 
-// Prioritás URL-ek — ezeken van a legtöbb tracker és form
 function isPriorityPath(url: string): boolean {
   const path = new URL(url).pathname.toLowerCase()
   return /kapcsolat|contact|rendeles|order|checkout|fizet|payment|regisztr|register|signup|login|bejelent|cart|kosar|newsletter|hirlevel|demo|ajanlat|quote/.test(path)
 }
 
-// ─── HTTP header elemzés (ÚJ) ─────────────────────────────────────────────────
+// ─── HTTP header elemzés ──────────────────────────────────────────────────────
 
 function analyzeHeaders(
   headers: Headers,
@@ -188,13 +200,12 @@ function analyzeHeaders(
   }
 }
 
-// ─── Sitemap + robots.txt URL gyűjtés (ÚJ: párhuzamos) ───────────────────────
+// ─── Sitemap + robots.txt URL gyűjtés ────────────────────────────────────────
 
 async function getDiscoveryUrls(baseUrl: string): Promise<string[]> {
   const urls: string[] = []
   const origin = new URL(baseUrl).origin
 
-  // Párhuzamosan kérjük le a sitemap és robots.txt fájlokat
   const [sitemapResult, robotsResult] = await Promise.allSettled([
     fetchSitemapUrls(origin, baseUrl),
     fetchRobotsUrls(origin, baseUrl),
@@ -203,7 +214,6 @@ async function getDiscoveryUrls(baseUrl: string): Promise<string[]> {
   if (sitemapResult.status === 'fulfilled') urls.push(...sitemapResult.value)
   if (robotsResult.status === 'fulfilled') urls.push(...robotsResult.value)
 
-  // Egyedi URL-ek, prioritásos oldalak előre
   const unique = [...new Set(urls)]
   return [
     ...unique.filter(u => isPriorityPath(u)),
@@ -228,7 +238,6 @@ async function fetchSitemapUrls(origin: string, baseUrl: string): Promise<string
       for (const m of matches) {
         const loc = m[1].trim()
         if (loc.endsWith('.xml')) {
-          // Al-sitemap rekurzív olvasása
           try {
             const subRes = await fetch(loc, {
               headers: { 'User-Agent': 'Mozilla/5.0 DataKomp Scanner' },
@@ -265,7 +274,6 @@ async function fetchRobotsUrls(origin: string, baseUrl: string): Promise<string[
     if (!res.ok) return urls
     const text = await res.text()
 
-    // robots.txt-ben lévő Sitemap: direktívák
     const sitemapMatches = [...text.matchAll(/^Sitemap:\s*(.+)$/gim)]
     for (const m of sitemapMatches) {
       const sitemapUrl = m[1].trim()
@@ -318,7 +326,6 @@ async function scanPage(url: string) {
     const html = await res.text()
     const $ = cheerio.load(html)
 
-    // Script src-ek és tartalmak
     const scriptSrcs: string[] = []
     const scriptContents: string[] = []
     $('script').each((_, el) => {
@@ -328,7 +335,6 @@ async function scanPage(url: string) {
       if (content) scriptContents.push(content)
     })
 
-    // Script trackerek
     for (const tracker of KNOWN_TRACKERS) {
       const found =
         scriptSrcs.some(s => tracker.pattern.test(s)) ||
@@ -339,7 +345,6 @@ async function scanPage(url: string) {
       }
     }
 
-    // Meta tag trackerek
     $('meta').each((_, el) => {
       const name = $(el).attr('name') || $(el).attr('property') || ''
       const content = $(el).attr('content') || ''
@@ -351,7 +356,6 @@ async function scanPage(url: string) {
       }
     })
 
-    // noscript blokkok (GTM, Facebook Pixel)
     $('noscript').each((_, el) => {
       const content = $(el).html() || ''
       for (const tracker of KNOWN_TRACKERS) {
@@ -361,7 +365,6 @@ async function scanPage(url: string) {
       }
     })
 
-    // Form mezők — label szövege + attribútumok
     $('input, textarea, select').each((_, el) => {
       const inputId = $(el).attr('id') || ''
       const labelText = inputId ? $(`label[for="${inputId}"]`).text() : ''
@@ -382,7 +385,6 @@ async function scanPage(url: string) {
       }
     })
 
-    // Link gyűjtés a crawl-hoz
     $('a[href]').each((_, el) => {
       const href = $(el).attr('href')
       if (href) {
@@ -406,20 +408,16 @@ async function deepScan(startUrl: string, maxDepth = 3, maxPages = 60) {
   const allTrackers = new Map<string, typeof KNOWN_TRACKERS[number]>()
   const allFormFields = new Map<string, typeof FORM_FIELD_PATTERNS[number]>()
 
-  // Discovery URL-ek (sitemap + robots.txt) párhuzamosan
   const discoveryUrls = await getDiscoveryUrls(startUrl)
 
-  // Prioritásos oldalak előre, utána a crawl-ból jövők
   const queue: { url: string; depth: number }[] = [
     { url: startUrl, depth: 0 },
     ...discoveryUrls.map(u => ({ url: u, depth: 1 })),
   ]
 
-  // Globális 90 másodperces timeout
   const deadline = Date.now() + 90_000
 
   while (queue.length > 0 && visited.size < maxPages && Date.now() < deadline) {
-    // Párhuzamos feldolgozás: egyszerre max 5 oldal (ÚJ)
     const batch = queue.splice(0, 5)
     const results = await Promise.allSettled(
       batch.map(async item => {
@@ -438,12 +436,10 @@ async function deepScan(startUrl: string, maxDepth = 3, maxPages = 60) {
       for (const t of trackers) allTrackers.set(t.name, t)
       for (const f of formFields) allFormFields.set(f.data, f)
 
-      // HTTP header elemzés az első oldalon (ÚJ)
       if (url === startUrl && headers) {
         analyzeHeaders(headers, allTrackers)
       }
 
-      // Prioritásos linkek előre a sorban
       if (depth < maxDepth) {
         const newLinks = links
           .map(l => ({ url: l, depth: depth + 1 }))
@@ -473,7 +469,6 @@ export async function runScanner(websiteId: string, url: string) {
   try {
     const { trackers, formFields, pagesScanned } = await deepScan(url)
 
-    // Pending scanned rekordok törlése (az aktívakat megtartjuk)
     await supabase
       .from('systems')
       .delete()
@@ -481,7 +476,6 @@ export async function runScanner(websiteId: string, url: string) {
       .eq('source_type', 'scanned')
       .eq('status', 'pending')
 
-    // Már aktív scanned rekordok (duplikáció elkerülése)
     const { data: activeSystems } = await supabase
       .from('systems')
       .select('system_name, collected_data')
@@ -492,7 +486,6 @@ export async function runScanner(websiteId: string, url: string) {
     const activeNames = new Set(activeSystems?.map(s => s.system_name) ?? [])
     const activeData = new Set(activeSystems?.map(s => s.collected_data) ?? [])
 
-    // Manuális rendszerek (nem duplikálunk)
     const { data: manualSystems } = await supabase
       .from('systems')
       .select('purpose, collected_data')
@@ -514,7 +507,7 @@ export async function runScanner(websiteId: string, url: string) {
           system_name: tracker.name,
           purpose: tracker.purpose,
           collected_data: tracker.collected_data,
-          retention_period: RETENTION_MAP[tracker.name] ?? null,
+          retention_period: RETENTION_MAP[tracker.name] ?? null,  // ← ÚJ
           status: 'pending',
           source_type: 'scanned',
         })
@@ -532,7 +525,7 @@ export async function runScanner(websiteId: string, url: string) {
           system_name: `${siteName} – Webes űrlap`,
           purpose: field.purpose,
           collected_data: field.data,
-          retention_period: RETENTION_MAP[field.data] ?? null,
+          retention_period: RETENTION_MAP[field.data] ?? null,  // ← ÚJ
           status: 'pending',
           source_type: 'scanned',
         })
