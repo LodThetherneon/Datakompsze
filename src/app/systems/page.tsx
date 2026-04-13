@@ -8,109 +8,73 @@ import { SearchBar } from '@/components/search-bar'
 import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
 import { AcceptSystemButton } from '@/components/accept-system-button'
-import { PenLine, ScanSearch, GitBranch } from 'lucide-react'
+import { PenLine, ScanSearch } from 'lucide-react'
 
-export default async function SystemsPage(props: {
-  searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
-}) {
-  const searchParams = await props.searchParams
-  const currentFilter = searchParams.filter || 'all'
-  const searchQuery = searchParams.q || ''
-  const sourceId = searchParams.source || ''
-  const sourceType = searchParams.source_type || 'all'
+export default async function SystemsPage(props: { searchParams: Promise<{ filter?: string, q?: string, source?: string }> }) {
+  const searchParams = await props.searchParams;
+  const currentFilter = searchParams.filter || 'all';
+  const searchQuery = searchParams.q || ''; 
+  const sourceId = searchParams.source || '';
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   let systems: any[] = []
   let websites: any[] = []
   let pendingCount = 0
-  let processesForSelect: { id: string; process_name: string }[] = []
-  // website_id -> folyamat nevek map
-  let processMap: Record<string, string[]> = {}
 
   if (user) {
     const { data: company } = await supabase
-      .from('companies').select('id').eq('user_id', user.id).single()
+      .from('companies')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
 
     if (company) {
+      // 1. Lekérjük az összes Forrást (Weboldalak + Offline Rendszerek)
+      // NAGYON FONTOS a csillag (*), hogy a status-t is visszakapjuk!
       const { data: webData } = await supabase
-        .from('websites').select('*').eq('company_id', company.id)
-        .order('created_at', { ascending: false })
-
+        .from('websites')
+        .select('*')
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false });
+      
       if (webData && webData.length > 0) {
         websites = webData
         const websiteIds = webData.map((w) => w.id)
 
+        // Összes pending szám (szűrőtől függetlenül, az "Összes jóváhagyása" gombhoz)
         const { count } = await supabase
           .from('systems')
-          .select('id', { count: 'exact', head: true })
+          .select('*')
           .in('website_id', websiteIds)
-          .eq('status', 'pending')
-        pendingCount = count ?? 0
+          .order('created_at', { ascending: false });
+        
+        // 3. Állapot szűrés
+        if (currentFilter !== 'all') {
+          query = query.eq('status', currentFilter);
+        }
+        
+        // 3/B. Szűrés konkrét forrásra (HA rákattintott a Dashboardon a számra!)
+        if (sourceId) {
+          query = query.eq('website_id', sourceId);
+        }
 
-        let query = supabase
-          .from('systems').select('*')
-          .in('website_id', websiteIds)
-          .order('created_at', { ascending: false })
-
-        if (currentFilter !== 'all') query = query.eq('status', currentFilter)
-        if (sourceId) query = query.eq('website_id', sourceId)
-        if (sourceType !== 'all') query = query.eq('source_type', sourceType)
+        // 4. Szöveges keresés
         if (searchQuery) {
-          query = query.or(
-            `system_name.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%,collected_data.ilike.%${searchQuery}%`
-          )
+          query = query.or(`system_name.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%,collected_data.ilike.%${searchQuery}%`);
         }
 
         const { data: sysData } = await query
-        if (sysData) {
-          systems = sysData
-
-          // process_system_links website_id alapján (system_id = website_id)
-          const { data: links } = await supabase
-            .from('process_system_links')
-            .select('system_id, process_id')
-            .in('system_id', websiteIds)
-
-          if (links && links.length > 0) {
-            const processIds = [...new Set(links.map((l: any) => l.process_id))]
-
-            const { data: processes } = await supabase
-              .from('data_processes')
-              .select('id, process_name')
-              .in('id', processIds)
-
-            const processById: Record<string, string> = {}
-            ;(processes ?? []).forEach((p: any) => {
-              processById[p.id] = p.process_name
-            })
-
-            // website_id -> folyamat nevek
-            links.forEach((link: any) => {
-              if (!processMap[link.system_id]) processMap[link.system_id] = []
-              const name = processById[link.process_id]
-              if (name && !processMap[link.system_id].includes(name)) {
-                processMap[link.system_id].push(name)
-              }
-            })
-          }
-        }
+        if (sysData) systems = sysData
       }
-
-      // Folyamatok a dialoghoz
-      const { data: procData } = await supabase
-        .from('data_processes')
-        .select('id, process_name')
-        .eq('company_id', company.id)
-        .order('process_name', { ascending: true })
-      processesForSelect = procData ?? []
     }
   }
 
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
 
+      {/* === FEJLÉC ÉS GOMBOK === */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Kezelt adattípusok</h1>
@@ -120,6 +84,8 @@ export default async function SystemsPage(props: {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+
+          {/* ÁLLAPOT SZŰRŐ */}
           <div className="flex bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
             <Link
               href={`/systems?filter=all${searchQuery ? `&q=${searchQuery}` : ''}${sourceType !== 'all' ? `&source_type=${sourceType}` : ''}`}
@@ -140,24 +106,28 @@ export default async function SystemsPage(props: {
               Függőben
             </Link>
           </div>
+
+          {/* FORRÁS TÍPUS SZŰRŐ */}
           <SourceTypeFilter />
-          <AddManualSystemDialog
-            addAction={addManualSystem}
-            existingSystems={websites}
-            existingProcesses={processesForSelect}
-          />
+
+          {/* ÚJ ADATTÍPUS */}
+          <AddManualSystemDialog addAction={addManualSystem} existingSystems={websites} />
         </div>
       </header>
 
       <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden w-full flex-1">
 
+        {/* KERESŐ SÁV */}
         <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
           <SearchBar defaultValue={searchQuery} />
+          
+          {/* Jobb oldalra tolva */}
           <div className="ml-auto shrink-0">
             <AcceptAllButton pendingCount={pendingCount} />
           </div>
         </div>
 
+        {/* Táblázat Fejléc */}
         <div className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
           <div>Rendszer neve / Típusa</div>
@@ -167,6 +137,7 @@ export default async function SystemsPage(props: {
           <div className="text-right pr-4">Műveletek</div>
         </div>
 
+        {/* Táblázat Sorok */}
         <div className="divide-y divide-slate-50">
           {systems.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
@@ -175,9 +146,7 @@ export default async function SystemsPage(props: {
               </div>
               <h3 className="text-lg font-bold text-slate-700 mb-1">Nincs találat</h3>
               <p className="text-sm text-slate-500 max-w-md mx-auto">
-                {searchQuery
-                  ? `Nem találtunk eredményt a(z) "${searchQuery}" kifejezésre.`
-                  : 'A rendszer még nem talált automatikusan adatkezeléseket, vagy a kiválasztott szűrőnek nem felel meg egy sem.'}
+                {searchQuery ? `Nem találtunk eredményt a(z) "${searchQuery}" kifejezésre.` : "A rendszer még nem talált automatikusan adatkezeléseket, vagy a kiválasztott szűrőnek nem felel meg egy sem."}
               </p>
             </div>
           ) : (
@@ -185,20 +154,14 @@ export default async function SystemsPage(props: {
               const website = websites.find((w) => w.id === sys.website_id)
               const isPending = sys.status === 'pending'
               const isManual = sys.source_type === 'manual'
-              // website_id alapú processMap — de badge csak akkor jelenik meg,
-              // ha a sor collected_data-ja egyezik egy folyamat nevével
-              const websiteProcessNames = processMap[sys.website_id] ?? []
-              const linkedProcesses = websiteProcessNames.filter(
-                (name) => sys.collected_data === name
-              )
 
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
+                  className="grid grid-cols-[2rem_280px_200px_160px_140px_7rem] gap-4 px-5 py-5 items-center hover:bg-slate-50/80 transition-colors group"
                 >
                   {/* Ikon */}
-                  <div className="flex items-center justify-center pt-1">
+                  <div className="flex items-center justify-center">
                     <span
                       title={isManual ? 'Manuálisan rögzítve' : 'Scanner által azonosítva'}
                       className={`inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
@@ -211,7 +174,7 @@ export default async function SystemsPage(props: {
                     </span>
                   </div>
 
-                  {/* Rendszer neve + folyamat badge csak a saját sornál */}
+                  {/* Rendszer neve — fix 280px, max 2 sor */}
                   <div className="min-w-0">
                     <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
                       {sys.system_name}
@@ -234,39 +197,34 @@ export default async function SystemsPage(props: {
                     )}
                   </div>
 
-                  {/* Adatkezelés célja */}
-                  <div className="text-[13px] font-medium text-slate-600 line-clamp-2 leading-snug pt-0.5">
+                  {/* Adatkezelés célja — fix 200px */}
+                  <div className="text-[13px] font-medium text-slate-600 line-clamp-2 leading-snug">
                     {sys.purpose || 'Nincs megadva cél'}
                   </div>
 
-                  {/* Forrás */}
-                  <div className="pt-0.5">
+                  {/* Forrás — fix 160px */}
+                  <div>
                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold truncate max-w-full inline-block">
-                      {website
-                        ? website.status === 'offline'
-                          ? website.url
-                          : website.url.replace(/^https?:\/\//, '')
-                        : 'Ismeretlen forrás'}
+                      {/* Szépen formázzuk a Forrást a státusztól függően */}
+                      {website ? (website.status === 'offline' ? website.url : website.url.replace(/^https?:\/\//, '')) : 'Ismeretlen forrás'}
                     </span>
                   </div>
 
-                  {/* Státusz */}
-                  <div className="pt-0.5">
+                  {/* Státusz — fix 140px */}
+                  <div>
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        Függőben
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Jóváhagyásra vár
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-bold shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Elfogadva
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Elfogadva
                       </span>
                     )}
                   </div>
 
                   {/* Műveletek */}
-                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     {isPending && <AcceptSystemButton id={sys.id} />}
                     <DeleteConfirmDialog
                       id={sys.id}
@@ -276,11 +234,11 @@ export default async function SystemsPage(props: {
                     />
                   </div>
                 </div>
-              )
+              );
             })
           )}
         </div>
       </section>
     </div>
-  )
+  );
 }
