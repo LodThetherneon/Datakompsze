@@ -23,18 +23,14 @@ export async function addConnection(formData: FormData) {
   const quota = quotaMap[companyFull?.plan ?? 'free']
 
   if (quota !== null && (currentCount ?? 0) >= quota) {
-    throw new Error(`Elérted a ${companyFull?.plan} csomag kvótáját (${quota} db). Válts magasabb csomagra a Beállítások oldalon!`)
+    throw new Error(`Elérted a ${companyFull?.plan} csomag kvótáját (${quota} db). Válts magasabb csomagra!`)
   }
 
   const { data: company } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
+    .from('companies').select('id').eq('user_id', user.id).single()
 
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  const type = formData.get('type') as 'website' | 'system'
   const mode = formData.get('mode') as 'link' | 'manual'
 
   if (mode === 'link') {
@@ -43,24 +39,16 @@ export async function addConnection(formData: FormData) {
 
     const { data: newSite, error } = await supabase
       .from('websites')
-      .insert([{
-        company_id: company.id,
-        url: cleanUrl,
-        status: 'scanning'
-      }])
-      .select()
-      .single()
+      .insert([{ company_id: company.id, url: cleanUrl, status: 'scanning' }])
+      .select().single()
 
     if (error || !newSite) throw error
-
     runScanner(newSite.id, cleanUrl).catch(err => console.error('Scanner hiba:', err))
 
   } else if (mode === 'manual') {
     const name = formData.get('name') as string
     const { error } = await supabase.from('websites').insert([{
-      company_id: company.id,
-      url: name,
-      status: 'offline'
+      company_id: company.id, url: name, status: 'offline'
     }])
     if (error) throw error
   }
@@ -72,57 +60,49 @@ export async function addConnection(formData: FormData) {
 export async function addManualSystem(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
   const { data: company } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
+    .from('companies').select('id').eq('user_id', user.id).single()
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  const dataTypeCategory = formData.get('dataTypeCategory') as string
-  const collectedData = formData.get('collectedData') as string
-  const retentionUntilRaw = formData.get('retentionUntil') as string
+  // Form mezők kiolvasása
+  const websiteId       = (formData.get('websiteId')        as string)?.trim()
+  const systemName      = (formData.get('systemName')       as string)?.trim()
+  const dataTypeCat     = (formData.get('dataTypeCategory') as string)?.trim()
+  const collectedData   = (formData.get('collectedData')    as string)?.trim()
+  const retentionUntilRaw = (formData.get('retentionUntil') as string)?.trim()
 
-  if (!dataTypeCategory?.trim()) throw new Error("A kategória megadása kötelező!")
-  if (!collectedData?.trim()) throw new Error("A kezelt adat megadása kötelező!")
+  if (!websiteId)         throw new Error("A kapcsolt rendszer megadása kötelező!")
+  if (!systemName)        throw new Error("Az adattípus nevének megadása kötelező!")
+  if (!dataTypeCat)       throw new Error("A kategória megadása kötelező!")
+  if (!collectedData)     throw new Error("A kezelt adat megadása kötelező!")
   if (!retentionUntilRaw) throw new Error("Az adatkezelés végének megadása kötelező!")
 
-  // Dátum validáció
-  const retentionUntilDate = new Date(retentionUntilRaw)
-  if (isNaN(retentionUntilDate.getTime())) throw new Error("Érvénytelen dátum formátum!")
+  // Dátum validáció (timezone-safe)
+  const parts = retentionUntilRaw.split('-').map(Number)
+  if (parts.length !== 3 || parts.some(isNaN)) throw new Error("Érvénytelen dátum formátum!")
+  const retentionDate = new Date(parts[0], parts[1] - 1, parts[2])
+  if (isNaN(retentionDate.getTime())) throw new Error("Érvénytelen dátum!")
 
-  // Az első elérhető céges weboldalt/forrást rendeljük hozzá (manuális adatnak nincs dedikált forrása)
-  const { data: websites } = await supabase
-    .from('websites')
-    .select('id, url, status')
+  // Biztonsági ellenőrzés: a websiteId valóban ehhez a céghez tartozik
+  const { data: website } = await supabase
+    .from('websites').select('id')
+    .eq('id', websiteId)
     .eq('company_id', company.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
+    .single()
 
-  if (!websites || websites.length === 0) {
-    throw new Error("Nincs még felvett forrás! Először adjon hozzá egy weboldalt vagy rendszert a Dashboardon.")
-  }
+  if (!website) throw new Error("A kiválasztott forrás nem található vagy nem a te cégedhez tartozik!")
 
-  const targetWebsite = websites[0]
-  const systemName = targetWebsite.status === 'offline'
-    ? targetWebsite.url
-    : targetWebsite.url.replace(/^https?:\/\//, '')
-
-  const { error } = await supabase.from('systems').insert([
-    {
-      website_id: targetWebsite.id,
-      system_name: systemName,
-      purpose: dataTypeCategory,
-      collected_data: collectedData,
-      status: 'active',
-      source_type: 'manual',
-      retention_until: retentionUntilRaw, // YYYY-MM-DD formátum, date oszlopba megy
-    }
-  ])
+  const { error } = await supabase.from('systems').insert([{
+    website_id:      websiteId,
+    system_name:     systemName,
+    purpose:         dataTypeCat,
+    collected_data:  collectedData,
+    status:          'active',
+    source_type:     'manual',
+    retention_until: retentionUntilRaw,   // YYYY-MM-DD → date oszlop
+  }])
 
   if (error) throw error
 
@@ -135,10 +115,7 @@ export async function deleteSystem(formData: FormData) {
   const id = formData.get('id') as string
 
   const { data: sys } = await supabase
-    .from('systems')
-    .select('website_id')
-    .eq('id', id)
-    .single()
+    .from('systems').select('website_id').eq('id', id).single()
 
   const { error } = await supabase.from('systems').delete().eq('id', id)
   if (error) throw error
@@ -190,21 +167,20 @@ export async function generatePolicy(formData: FormData) {
 
   let newVersion = '1.0'
   if (lastPolicy?.version) {
-    const parts = lastPolicy.version.split('.')
-    newVersion = `${parts[0]}.${parseInt(parts[1] || '0') + 1}`
+    const vParts = lastPolicy.version.split('.')
+    newVersion = `${vParts[0]}.${parseInt(vParts[1] || '0') + 1}`
   }
 
-  // A generálás PONTOS dátuma – ez kerül a dokumentumba
+  // Generálás dátuma — Budapest timezone
   const generatedAt = new Date()
   const today = new Intl.DateTimeFormat('hu-HU', {
     year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
   }).format(generatedAt)
 
-  const allSystems = systems || []
-
-  const thirdParties = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap'))
+  const allSystems    = systems || []
+  const thirdParties  = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap'))
   const cookieSystems = thirdParties
-  const formSystems = allSystems.filter(s => s.system_name?.includes('Webes űrlap'))
+  const formSystems   = allSystems.filter(s => s.system_name?.includes('Webes űrlap'))
   const manualSystems = allSystems.filter(s => s.source_type === 'manual')
 
   const dpoSection = company.dpo_name
@@ -214,38 +190,37 @@ export async function generatePolicy(formData: FormData) {
 
   function legalBasis(s: any): string {
     const p = (s.purpose || '').toLowerCase()
-    if (p.includes('hírlevél') || p.includes('marketing') || p.includes('remarketing') || p.includes('hirdetés')) {
+    if (p.includes('hírlevél') || p.includes('marketing') || p.includes('remarketing') || p.includes('hirdetés'))
       return 'Hozzájárulás (GDPR 6. cikk (1) a))'
-    }
-    if (p.includes('fizetés') || p.includes('számlázás') || p.includes('rendelés') || p.includes('szerződés')) {
+    if (p.includes('fizetés') || p.includes('számlázás') || p.includes('rendelés') || p.includes('szerződés'))
       return 'Szerződés teljesítése (GDPR 6. cikk (1) b))'
-    }
-    if (p.includes('jogi') || p.includes('törvény') || p.includes('adóügyi')) {
+    if (p.includes('jogi') || p.includes('törvény') || p.includes('adóügyi'))
       return 'Jogi kötelezettség (GDPR 6. cikk (1) c))'
-    }
-    if (p.includes('analitik') || p.includes('statisztik') || p.includes('teljesítmény') || p.includes('biztonság')) {
+    if (p.includes('analitik') || p.includes('statisztik') || p.includes('teljesítmény') || p.includes('biztonság'))
       return 'Jogos érdek (GDPR 6. cikk (1) f))'
-    }
     return 'Hozzájárulás (GDPR 6. cikk (1) a))'
   }
 
-  // Megőrzési idő: manuális rendszereknél a retention_until dátumból számítunk, másoknál logika alapján
+  // Timezone-safe megőrzési idő: YYYY-MM-DD → lokális dátum, nincs UTC shift
   function retentionPeriod(s: any): string {
-    // Manuális bejegyzésnél a tárolt dátumot jelenítjük meg
     if (s.source_type === 'manual' && s.retention_until) {
-      const d = new Date(s.retention_until)
-      if (!isNaN(d.getTime())) {
-        return new Intl.DateTimeFormat('hu-HU', {
-          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
-        }).format(d) + '-ig'
+      const raw = String(s.retention_until)
+      const dateParts = raw.split('-').map(Number)
+      if (dateParts.length === 3 && dateParts.every(n => !isNaN(n))) {
+        const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+        if (!isNaN(d.getTime())) {
+          return new Intl.DateTimeFormat('hu-HU', {
+            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
+          }).format(d) + '-ig'
+        }
       }
     }
     const p = (s.purpose || '').toLowerCase()
-    if (p.includes('hírlevél') || p.includes('marketing')) return 'Leiratkozásig'
-    if (p.includes('fizetés') || p.includes('számlázás')) return '8 év (számviteli törvény)'
-    if (p.includes('analitik') || p.includes('statisztik')) return '26 hónap'
-    if (p.includes('chat') || p.includes('kapcsolat') || p.includes('üzenet')) return '1 év'
-    if (p.includes('süti') || p.includes('cookie') || p.includes('remarketing')) return 'Süti lejártáig (max. 13 hónap)'
+    if (p.includes('hírlevél') || p.includes('marketing'))           return 'Leiratkozásig'
+    if (p.includes('fizetés')  || p.includes('számlázás'))           return '8 év (számviteli törvény)'
+    if (p.includes('analitik') || p.includes('statisztik'))          return '26 hónap'
+    if (p.includes('chat')     || p.includes('kapcsolat') || p.includes('üzenet')) return '1 év'
+    if (p.includes('süti')     || p.includes('cookie')   || p.includes('remarketing')) return 'Süti lejártáig (max. 13 hónap)'
     return '5 év'
   }
 
@@ -271,15 +246,12 @@ export async function generatePolicy(formData: FormData) {
       </tr>`).join('')
     : `<tr><td colspan="3" style="padding:12px;color:#94a3b8;text-align:center">Nem azonosítottak harmadik fél adatfeldolgozókat.</td></tr>`
 
-  const cookieSection = cookieSystems.length > 0
-    ? `
+  const cookieSection = cookieSystems.length > 0 ? `
     <h2>5. Sütik (Cookie-k) használata</h2>
-    <p>A weboldal sütiket (cookie-kat) használ. A sütik kis szövegfájlok, amelyeket a böngésző tárol az eszközön. Az alábbi sütiket alkalmazzuk:</p>
+    <p>A weboldal sütiket használ. Az alábbi sütiket alkalmazzuk:</p>
     <table>
       <thead><tr>
-        <th>Sütik / Szolgáltatás neve</th>
-        <th>Célkitűzés</th>
-        <th>Kezelt adatok</th>
+        <th>Sütik / Szolgáltatás neve</th><th>Célkitűzés</th><th>Kezelt adatok</th>
       </tr></thead>
       <tbody>
         ${cookieSystems.map(s => `
@@ -290,8 +262,7 @@ export async function generatePolicy(formData: FormData) {
           </tr>`).join('')}
       </tbody>
     </table>
-    <p>A sütik elfogadása önkéntes. A böngésző beállításaiban a sütik bármikor törölhetők vagy letilthatók, ez azonban egyes funkciók működését korlátozhatja.</p>`
-    : ''
+    <p>A sütik elfogadása önkéntes. A böngésző beállításaiban bármikor törölhetők.</p>` : ''
 
   const n = cookieSystems.length > 0
 
@@ -351,12 +322,10 @@ ${dpoSection}
 </table>
 
 <h2>4. Harmadik fél adatfeldolgozók</h2>
-<p>A weboldal az alábbi külső szolgáltatásokat veszi igénybe, amelyek önállóan is végezhetnek adatkezelést:</p>
+<p>A weboldal az alábbi külső szolgáltatásokat veszi igénybe:</p>
 <table>
   <thead><tr>
-    <th>Szolgáltatás neve</th>
-    <th>Adatkezelés célja</th>
-    <th>Kezelt adatok</th>
+    <th>Szolgáltatás neve</th><th>Adatkezelés célja</th><th>Kezelt adatok</th>
   </tr></thead>
   <tbody>${thirdPartyRows}</tbody>
 </table>
@@ -372,18 +341,18 @@ ${cookieSection}
 </p>
 
 <h2>${n ? '7' : '6'}. Automatizált döntéshozatal és profilalkotás</h2>
-<p>Az adatkezelés a rendelkezésre álló személyes adatok alapján automatizált döntéshozatalt vagy profilalkotást <strong>nem végez</strong> (GDPR 22. cikk).</p>
+<p>Az adatkezelés automatizált döntéshozatalt vagy profilalkotást <strong>nem végez</strong> (GDPR 22. cikk).</p>
 
 <h2>${n ? '8' : '7'}. Az érintett jogai</h2>
 <p>A GDPR alapján Ön az alábbi jogokkal rendelkezik:</p>
 <ul>
   <li><strong>Hozzáférési jog (15. cikk):</strong> tájékoztatást kérhet a kezelt adatairól</li>
   <li><strong>Helyesbítési jog (16. cikk):</strong> kérheti a pontatlan adatok javítását</li>
-  <li><strong>Törlési jog / „elfeledtetéshez való jog" (17. cikk):</strong> kérheti adatai törlését</li>
+  <li><strong>Törlési jog (17. cikk):</strong> kérheti adatai törlését</li>
   <li><strong>Az adatkezelés korlátozásához való jog (18. cikk):</strong> kérheti az adatkezelés korlátozását</li>
   <li><strong>Adathordozhatósághoz való jog (20. cikk):</strong> kérheti adatait géppel olvasható formátumban</li>
   <li><strong>Tiltakozáshoz való jog (21. cikk):</strong> tiltakozhat az adatkezelés ellen</li>
-  <li><strong>Hozzájárulás visszavonása:</strong> ha az adatkezelés hozzájáruláson alapul, azt bármikor visszavonhatja</li>
+  <li><strong>Hozzájárulás visszavonása:</strong> hozzájárulás alapú adatkezelésnél bármikor visszavonhatja</li>
 </ul>
 <p>Jogait az alábbi e-mail címen gyakorolhatja: <a href="mailto:${company.email}">${company.email || '—'}</a></p>
 <p>Jogorvoslati lehetőséggel élhet a <strong>Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH)</strong>:<br>
@@ -396,7 +365,7 @@ ${cookieSection}
 <p>Az adatkezelő megfelelő technikai és szervezési intézkedéseket alkalmaz a személyes adatok védelme érdekében, beleértve a titkosítást, hozzáférés-vezérlést és rendszeres biztonsági felülvizsgálatokat.</p>
 
 <h2>${n ? '10' : '9'}. Tájékoztató módosítása</h2>
-<p>Az adatkezelő fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja. A mindenkori hatályos verzió mindig a weboldalon érhető el.</p>
+<p>Az adatkezelő fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja.</p>
 
 <p style="margin-top:48px;font-size:12px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:16px">
   Generálva: ${today} &nbsp;·&nbsp; DataKomp automatikus tájékoztató generátor &nbsp;·&nbsp; v${newVersion}
@@ -412,11 +381,11 @@ ${cookieSection}
     .eq('status', 'current')
 
   const { error } = await supabase.from('policies').insert([{
-    website_id: websiteId,
-    version: newVersion,
+    website_id:   websiteId,
+    version:      newVersion,
     content_html: contentHtml,
-    status: 'current',
-    valid_from: new Date().toISOString()
+    status:       'current',
+    valid_from:   new Date().toISOString()
   }])
 
   if (error) throw error
@@ -529,7 +498,6 @@ export async function rescanWebsite(formData: FormData) {
     .eq('id', websiteId)
 
   revalidatePath('/')
-
   runScanner(websiteId, website.url).catch(err => console.error('Rescan hiba:', err))
 }
 
@@ -556,6 +524,5 @@ export async function acceptAllPending() {
     .eq('status', 'pending')
 
   if (error) throw error
-
   revalidatePath('/systems')
 }
