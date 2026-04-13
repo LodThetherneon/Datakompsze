@@ -66,3 +66,28 @@ export async function changePlan(formData: FormData) {
   revalidatePath('/settings')
   revalidatePath('/')
 }
+
+export async function deleteCompanyData(): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Nincs bejelentkezett felhasználó.')
+
+  const { error } = await supabase
+    .from('companies')
+    .update({
+      name: '',
+      tax_number: null,
+      registration_number: null,
+      headquarters: null,
+      email: null,
+      phone: null,
+      dpo_name: null,
+      dpo_email: null,
+      hosting_provider_name: null,
+      hosting_provider_address: null,
+      hosting_provider_email: null,
+    })
+    .eq('user_id', user.id)
+
+  if (error) throw new Error(error.message)
+}
