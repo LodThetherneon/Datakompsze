@@ -8,24 +8,14 @@ export function RealtimeRefresher() {
   const router = useRouter()
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const wasScanning = useRef(false)
+  const realtimeActiveRef = useRef(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    // Realtime figyelő — ha a websites tábla változik
-    const channel = supabase
-      .channel('websites-changes')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'websites' },
-        () => {
-          router.refresh()
-        }
-      )
-      .subscribe()
-
-    // Polling fallback — 3 másodpercenként ellenőrzi van-e scanning státuszú oldal
+    // Polling függvény — csak akkor indul el, ha a Realtime nem érhető el
     const startPolling = () => {
+      if (pollingRef.current) return // már fut
       pollingRef.current = setInterval(async () => {
         const { data } = await supabase
           .from('websites')
@@ -38,18 +28,44 @@ export function RealtimeRefresher() {
         if (isScanning) {
           wasScanning.current = true
         } else if (wasScanning.current) {
-          // Volt scanning, most már nincs → frissítünk
           wasScanning.current = false
           router.refresh()
         }
-      }, 3000)
+      }, 10000) // 10 másodperc
     }
 
-    startPolling()
+    const stopPolling = () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+
+    // Realtime csatorna — fő frissítési mechanizmus
+    const channel = supabase
+      .channel('websites-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'websites' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Realtime él — lehetne polling-ot leállítani, de a scanning-figyelest megőrizzük
+          realtimeActiveRef.current = true
+          stopPolling() // ha előzőleg futott fallback, leállítjuk
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Realtime nem elérhető — fallback polling indul
+          realtimeActiveRef.current = false
+          startPolling()
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
-      if (pollingRef.current) clearInterval(pollingRef.current)
+      stopPolling()
     }
   }, [router])
 
