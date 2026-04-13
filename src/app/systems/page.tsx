@@ -253,6 +253,8 @@ export default async function SystemsPage(props: {
                       <span className="text-[12px] font-medium text-slate-600">{retentionDisplay}</span>
                     ) : retentionLabel ? (
                       <span className="text-[12px] font-medium text-slate-600">{retentionLabel}</span>
+                    ) : sys.retention_period ? (
+                      <span className="text-[12px] font-medium text-slate-600">{sys.retention_period}</span>
                     ) : (
                       <span className="text-[12px] text-slate-300">—</span>
                     )}
