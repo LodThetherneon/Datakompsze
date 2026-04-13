@@ -113,8 +113,8 @@ export default async function SystemsPage(props: {
 
         {/* Táblázat fejléc */}
         <div className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-          <div />
-          <div className="flex items-center gap-1.5">
+          
+          <div className="col-span-2 flex items-center gap-1.5">
             <Tag size={11} />
             Adattípus neve / Kategória
           </div>
