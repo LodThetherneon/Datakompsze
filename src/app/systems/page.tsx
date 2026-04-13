@@ -187,7 +187,7 @@ export default async function SystemsPage(props: {
                       title={isManual ? 'Manuálisan rögzítve' : 'Scanner által azonosítva'}
                       className={`inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
                         isManual
-                          ? 'bg-violet-50 text-violet-500 border border-violet-100'
+                          ? 'bg-amber-50 text-amber-500 border border-amber-100'
                           : 'bg-sky-50 text-sky-500 border border-sky-100'
                       }`}
                     >
