@@ -21,11 +21,12 @@ interface DeleteConfirmDialogProps {
   id: string;
   systemName: string;
   websiteId: string;
-  hasPolicy?: boolean; // ← ÚJ: ha false, a tájékoztató kérdést átugorja
+  simpleConfirm?: boolean; 
+  hasPolicy?: boolean; 
   deleteAction: (formData: FormData) => Promise<{ websiteId: string | null } | void>;
 }
 
-export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = false, deleteAction }: DeleteConfirmDialogProps) {
+export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = false, simpleConfirm = false, deleteAction }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -35,7 +36,7 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = fal
   const router = useRouter();
   const { success, error } = useToast();
 
-  const isMatch = inputValue === systemName;
+  const isMatch = simpleConfirm ? true : inputValue === systemName;
 
   const handleDelete = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

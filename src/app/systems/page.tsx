@@ -286,6 +286,7 @@ export default async function SystemsPage(props: {
                       id={sys.id}
                       systemName={sys.system_name}
                       websiteId={sys.website_id}
+                      simpleConfirm={true}   
                       deleteAction={deleteSystem}
                     />
                   </div>

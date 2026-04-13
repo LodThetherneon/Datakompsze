@@ -177,6 +177,16 @@ export function AddProcessDialog({
       : ''
     formData.set('retention_period', retentionStr)
 
+    if (!retentionValue.trim() || parseInt(retentionValue, 10) < 1) {
+      error('A megőrzési idő megadása kötelező.')
+      return
+    }
+
+    if (!formData.get('storage_location')) {
+      error('A tárolás helye megadása kötelező.')
+      return
+    }
+
     if (deptValue.trim() && !isKnownDept) {
       setConfirmNewDept({ name: deptValue.trim(), pendingFormData: formData })
       return

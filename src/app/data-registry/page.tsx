@@ -72,7 +72,7 @@ export default async function DataRegistryPage(props: {
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Folyamatnyilvántartás</h1>
           <p className="text-[14px] text-slate-500 mt-2 font-medium">
-            Az adatkezelési tevékenységek nyilvántartása a GDPR 30. cikk alapján.
+            Az adatkezelési tevékenységek nyilvántartása.
           </p>
         </div>
         <div className="flex items-center gap-3">
