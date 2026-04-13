@@ -119,7 +119,7 @@ export default async function Home() {
                   </span>
                 </div>
                 <p className="text-[13px] text-slate-400 leading-relaxed font-medium">
-                  Nincs aktív kapcsolat. Adj hozzá legalább egy weboldalt vagy rendszert.
+                  Nincs aktív kapcsolat. Adjon hozzá legalább egy weboldalt vagy rendszert.
                 </p>
               </>
             ) : complianceState === 'noDocument' ? (
@@ -163,11 +163,11 @@ export default async function Home() {
             </div>
             <div className="space-y-2 mt-auto">
               <div className="flex justify-between items-center text-[13px] border-b border-slate-100 pb-2">
-                <span className="text-slate-600 font-medium">Weboldalak / Domének</span>
+                <span className="text-slate-600 font-medium">Weboldalak / Rendszerek</span>
                 <span className="font-bold text-emerald-600">{webDomainCount} db</span>
               </div>
               <div className="flex justify-between items-center text-[13px] pt-1">
-                <span className="text-slate-500 font-medium">Offline rendszerek</span>
+                <span className="text-slate-500 font-medium">Belső (offline) rendszerek</span>
                 <span className="font-bold text-slate-400">{offlineSystemCount} db</span>
               </div>
             </div>
@@ -192,7 +192,7 @@ export default async function Home() {
           <div>
             <div className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Gyorsművelet</div>
             <p className="text-[13px] text-slate-600 leading-relaxed mb-4 font-medium">
-              Scanneld újra valamelyik weboldalt, vagy frissítsd az összes tájékoztatót.
+              Scannelje újra valamelyik weboldalt, vagy frissítse az összes tájékoztatót.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -212,7 +212,7 @@ export default async function Home() {
 
       {/* === LISTA NÉZET === */}
       <section className="pt-6 w-full flex-1">
-        <h2 className="text-[15px] font-bold text-slate-800 mb-4">Bekötött Weboldalak és Rendszerek Állapota</h2>
+        <h2 className="text-[15px] font-bold text-slate-800 mb-4">Bekötött Weboldalak, Rendszerek és Állapotuk</h2>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden w-full overflow-x-auto">
           <div className="min-w-[800px] grid grid-cols-12 gap-4 p-4 border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -220,13 +220,13 @@ export default async function Home() {
             <div className="col-span-3">Dátumok (Hozzáadva / Utolsó scan)</div>
             <div className="col-span-2 text-center">Tájékoztató Verzió</div>
             <div className="col-span-2 text-center">Kezelt Adattípusok</div>
-            <div className="col-span-2 text-right pr-4">Státusz</div>
+            <div className="col-span-2 text-right pr-4">Státusz/Műveletek</div>
           </div>
 
           <div className="min-w-[800px] divide-y divide-slate-50">
             {websites.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-sm font-medium">
-                Még nincs bekötve egyetlen forrás sem. Kattints a zöld gombra fent!
+                Még nincs bekötve egyetlen forrás sem. Kattintson az új kapcsolat hozzáadása gombra!
               </div>
             ) : (
               websites.map((site) => {

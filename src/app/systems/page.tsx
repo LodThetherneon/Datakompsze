@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Search, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { addManualSystem, deleteSystem } from '@/app/actions'
@@ -114,7 +114,7 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[2rem_1fr_1fr_160px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[2rem_1fr_1fr_160px_130px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
           <div className="flex items-center gap-1.5">
             <Tag size={11} />
@@ -127,6 +127,10 @@ export default async function SystemsPage(props: {
           <div className="flex items-center gap-1.5">
             <Globe size={11} />
             Forrás
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock size={11} />
+            Megőrzési idő
           </div>
           <div className="flex items-center gap-1.5">
             <CheckCircle2 size={11} />
@@ -146,7 +150,7 @@ export default async function SystemsPage(props: {
               <p className="text-sm text-slate-500 max-w-md mx-auto">
                 {searchQuery
                   ? `Nem találtunk eredményt a(z) "${searchQuery}" kifejezésre.`
-                  : 'A rendszer még nem talált automatikusan adatkezeléseket, vagy a kiválasztott szűrőnek nem felel meg egy sem.'}
+                  : 'A rendszer még nem talált adattípusokat. Kérem adjon hozzá kapcsolatokat vagy manuálisan rögzítse a kezelt adattípusokat.'}
               </p>
             </div>
           ) : (
@@ -154,11 +158,8 @@ export default async function SystemsPage(props: {
               const website   = websites.find((w) => w.id === sys.website_id)
               const isPending = sys.status === 'pending'
               const isManual  = sys.source_type === 'manual'
-
-              // Ha van collected_data (= folyamat neve csatoláskor), az a "folyamat" sor
               const isLinkedFromProcess = isManual && !!sys.collected_data?.trim()
 
-              // Kezelés vége – timezone-safe formázás
               let retentionLabel: string | null = null
               if (isManual && sys.retention_until) {
                 const parts = String(sys.retention_until).split('-').map(Number)
@@ -178,7 +179,7 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_1fr_1fr_160px_160px_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group"
+                  className="grid grid-cols-[2rem_1fr_1fr_160px_130px_160px_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group"
                 >
                   {/* Ikon */}
                   <div className="flex items-center justify-center pt-0.5">
@@ -194,11 +195,7 @@ export default async function SystemsPage(props: {
                     </span>
                   </div>
 
-                  {/* Adattípus neve / Kategória
-                      - Fent: system_name (a webhely neve/URL)
-                      - Középen: purpose (kategória)
-                      - Alul: collected_data = folyamat neve (ha csatolásból jött)
-                  */}
+                  {/* Adattípus neve / Kategória */}
                   <div className="min-w-0">
                     <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
                       {sys.system_name}
@@ -206,7 +203,6 @@ export default async function SystemsPage(props: {
                     <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
                       {sys.purpose || 'Nincs megadva kategória'}
                     </div>
-                    {/* Csatolt folyamat neve – csak ha folyamatból jött */}
                     {isLinkedFromProcess && (
                       <div className="mt-1.5 flex items-center gap-1">
                         <GitBranch size={10} className="text-emerald-500 shrink-0" />
@@ -215,25 +211,11 @@ export default async function SystemsPage(props: {
                         </span>
                       </div>
                     )}
-                    {/* Megőrzési idő */}
-                    {(retentionDisplay || retentionLabel) && (
-                      <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                        <span>🗓</span>
-                        {retentionDisplay
-                          ? <span>Megőrzés: {retentionDisplay}</span>
-                          : <span>Kezelés vége: {retentionLabel}</span>
-                        }
-                      </div>
-                    )}
                   </div>
 
-                  {/* Kezelt adatok
-                      - Ha folyamatból csatolt: sys.purpose = adatkezelés célja
-                      - Különben: sys.collected_data
-                  */}
+                  {/* Kezelt adatok */}
                   <div className="min-w-0 pt-0.5">
                     {isLinkedFromProcess ? (
-                      // Folyamatból csatolt: purpose = adatkezelés célja
                       sys.purpose?.trim() ? (
                         <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
                           {sys.purpose}
@@ -242,7 +224,6 @@ export default async function SystemsPage(props: {
                         <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
                       )
                     ) : (
-                      // Scanner vagy manuális (nem folyamatból): collected_data
                       sys.collected_data?.trim() ? (
                         <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
                           {sys.collected_data}
@@ -262,6 +243,17 @@ export default async function SystemsPage(props: {
                           : website.url.replace(/^https?:\/\//, '')
                         : 'Ismeretlen forrás'}
                     </span>
+                  </div>
+
+                  {/* Megőrzési idő */}
+                  <div className="pt-0.5">
+                    {retentionDisplay ? (
+                      <span className="text-[12px] font-medium text-slate-600">{retentionDisplay}</span>
+                    ) : retentionLabel ? (
+                      <span className="text-[12px] font-medium text-slate-600">{retentionLabel}</span>
+                    ) : (
+                      <span className="text-[12px] text-slate-300">—</span>
+                    )}
                   </div>
 
                   {/* Státusz */}
@@ -286,7 +278,7 @@ export default async function SystemsPage(props: {
                       id={sys.id}
                       systemName={sys.system_name}
                       websiteId={sys.website_id}
-                      simpleConfirm={true}   
+                      simpleConfirm={true}
                       deleteAction={deleteSystem}
                     />
                   </div>

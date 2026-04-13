@@ -103,7 +103,7 @@ export default async function DataRegistryPage(props: {
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
           <div className="flex items-center gap-1.5"><Clock size={11} /> Megőrzési idő</div>
           <div className="flex items-center gap-1.5"><HardDrive size={11} /> Tárolás helye</div>
-          <div className="text-right pr-2">Műv.</div>
+          <div className="text-right pr-2">Műveletek</div>
         </div>
 
         <div className="divide-y divide-slate-50">
@@ -112,7 +112,7 @@ export default async function DataRegistryPage(props: {
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
                 <Search className="text-slate-300" size={24} />
               </div>
-              <h3 className="text-lg font-bold text-slate-700 mb-1">Nincs még folyamat rögzítve</h3>
+              <h3 className="text-lg font-bold text-slate-700 mb-1">Még nincs folyamat rögzítve</h3>
               <p className="text-sm text-slate-500 max-w-md mx-auto">
                 {searchQuery
                   ? `Nem találtunk eredményt a(z) "${searchQuery}" kifejezésre.`

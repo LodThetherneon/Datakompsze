@@ -85,7 +85,7 @@ export function LinkWebsiteDialog({ processId, allWebsites, linkedWebsiteIds, li
         <div className="space-y-2 pt-2 max-h-72 overflow-y-auto pr-1">
           {allWebsites.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-6">
-              Még nincs felvett rendszer vagy weboldal az Irányítópulton.
+              Még nincs hozzáadott kapcsolat a rendszerben.
             </p>
           ) : (
             allWebsites.map((w) => {

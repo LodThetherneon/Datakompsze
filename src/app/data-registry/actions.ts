@@ -28,9 +28,65 @@ export async function addDataProcess(formData: FormData) {
 export async function deleteDataProcess(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
+
+  // 1. Folyamat neve + csatolt website_id-k
+  const { data: process } = await supabase
+    .from('data_processes')
+    .select('process_name')
+    .eq('id', id)
+    .single()
+
+  const { data: links } = await supabase
+    .from('process_system_links')
+    .select('system_id')
+    .eq('process_id', id)
+
+  if (process && links && links.length > 0) {
+    for (const link of links) {
+      // 2. Van-e MÁS folyamat ugyanehhez a website_id-hoz ugyanilyen névvel?
+      const { data: otherLinks } = await supabase
+        .from('process_system_links')
+        .select('process_id')
+        .eq('system_id', link.system_id)
+        .neq('process_id', id)
+
+      const otherProcessIds = (otherLinks ?? []).map((l) => l.process_id)
+
+      let stillUsed = false
+      if (otherProcessIds.length > 0) {
+        const { data: otherProcesses } = await supabase
+          .from('data_processes')
+          .select('process_name')
+          .in('id', otherProcessIds)
+          .eq('process_name', process.process_name)
+
+        if (otherProcesses && otherProcesses.length > 0) stillUsed = true
+      }
+
+      // 3. Csak akkor töröljük a systems sort, ha más nem hivatkozik rá
+      if (!stillUsed) {
+        await supabase
+          .from('systems')
+          .delete()
+          .eq('website_id', link.system_id)
+          .eq('collected_data', process.process_name)
+          .eq('source_type', 'manual')
+      }
+    }
+  }
+
+  // 4. Links törlése
+  await supabase
+    .from('process_system_links')
+    .delete()
+    .eq('process_id', id)
+
+  // 5. Folyamat törlése
   const { error } = await supabase.from('data_processes').delete().eq('id', id)
   if (error) throw error
+
   revalidatePath('/data-registry')
+  revalidatePath('/systems')
 }
 
 export async function linkWebsiteToProcess(formData: FormData) {
@@ -38,10 +94,10 @@ export async function linkWebsiteToProcess(formData: FormData) {
   const process_id = formData.get('process_id') as string
   const website_id = formData.get('website_id') as string
 
-  // 1. Folyamat nevének lekérése
+  // 1. Folyamat adatainak lekérése
   const { data: process } = await supabase
     .from('data_processes')
-    .select('process_name, purpose')
+    .select('process_name, purpose, retention_period')
     .eq('id', process_id)
     .single()
 
@@ -60,7 +116,7 @@ export async function linkWebsiteToProcess(formData: FormData) {
     ? website.url
     : website.url.replace(/^https?:\/\//, '')
 
-  // 3. Ellenőrzés: létezik-e már ilyen systems sor (nehogy duplikálódjon)
+  // 3. Duplikáció védelem
   const { data: existing } = await supabase
     .from('systems')
     .select('id')
@@ -77,11 +133,12 @@ export async function linkWebsiteToProcess(formData: FormData) {
       collected_data: process.process_name,
       status: 'active',
       source_type: 'manual',
+      retention_display: process.retention_period || null,
     }])
     if (sysError) throw sysError
   }
 
-  // 5. Link mentése (process_system_links) — duplikáció védelem
+  // 5. Link mentése — duplikáció védelem
   const { data: existingLink } = await supabase
     .from('process_system_links')
     .select('process_id')
@@ -105,21 +162,42 @@ export async function unlinkWebsiteFromProcess(formData: FormData) {
   const process_id = formData.get('process_id') as string
   const website_id = formData.get('website_id') as string
 
-  // 1. Folyamat nevének lekérése (a systems sorhoz kell)
+  // 1. Folyamat nevének lekérése
   const { data: process } = await supabase
     .from('data_processes')
     .select('process_name')
     .eq('id', process_id)
     .single()
 
-  // 2. A kapcsolódó systems sort is töröljük (ahol collected_data = folyamat neve)
+  // 2. Van-e MÁS folyamat ugyanehhez a website_id-hoz ugyanilyen névvel?
   if (process) {
-    await supabase
-      .from('systems')
-      .delete()
-      .eq('website_id', website_id)
-      .eq('collected_data', process.process_name)
-      .eq('source_type', 'manual')
+    const { data: otherLinks } = await supabase
+      .from('process_system_links')
+      .select('process_id')
+      .eq('system_id', website_id)
+      .neq('process_id', process_id)
+
+    const otherProcessIds = (otherLinks ?? []).map((l) => l.process_id)
+
+    let stillUsed = false
+    if (otherProcessIds.length > 0) {
+      const { data: otherProcesses } = await supabase
+        .from('data_processes')
+        .select('process_name')
+        .in('id', otherProcessIds)
+        .eq('process_name', process.process_name)
+
+      if (otherProcesses && otherProcesses.length > 0) stillUsed = true
+    }
+
+    if (!stillUsed) {
+      await supabase
+        .from('systems')
+        .delete()
+        .eq('website_id', website_id)
+        .eq('collected_data', process.process_name)
+        .eq('source_type', 'manual')
+    }
   }
 
   // 3. Link törlése

@@ -164,7 +164,7 @@ export default async function PoliciesPage({
             Még nincs generált tájékoztató
           </h3>
           <p className="text-[14px] text-slate-500 max-w-md mx-auto">
-            Válassz ki egy forrást fent, és kattints a "Generálás" gombra.
+            Válassz ki egy forrást, és kattints a "Generálás" gombra.
           </p>
         </div>
       )}
