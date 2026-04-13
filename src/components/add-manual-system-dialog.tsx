@@ -53,16 +53,18 @@ function calcRetentionUntil(value: string, unit: string): string | null {
 }
 
 export function AddManualSystemDialog({ addAction, existingSystems }: AddManualSystemDialogProps) {
-  const [open, setOpen]                         = useState(false)
-  const [isSubmitting, setIsSubmitting]         = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [customCategory, setCustomCategory]     = useState<string>("")
-  const [retentionValue, setRetentionValue]     = useState<string>("")
-  const [retentionUnit, setRetentionUnit]       = useState<string>("év")
+  const [open, setOpen]                           = useState(false)
+  const [isSubmitting, setIsSubmitting]           = useState(false)
+  const [selectedWebsiteId, setSelectedWebsiteId] = useState<string>("")  // ÚJ
+  const [selectedCategory, setSelectedCategory]   = useState<string>("")
+  const [customCategory, setCustomCategory]       = useState<string>("")
+  const [retentionValue, setRetentionValue]       = useState<string>("")
+  const [retentionUnit, setRetentionUnit]         = useState<string>("év")
   const { success, error } = useToast()
 
   const handleClose = () => {
     setOpen(false)
+    setSelectedWebsiteId("")  // ÚJ
     setSelectedCategory("")
     setCustomCategory("")
     setRetentionValue("")
@@ -89,8 +91,11 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
     }
     formData.set("retentionUntil",   retentionDate)
     formData.set("retentionDisplay", `${retentionValue} ${retentionUnit}`)
-    formData.set("websiteId",  "")
-    formData.set("systemName", "")
+
+    // ÚJ: kiválasztott weboldal beállítása
+    const chosenWebsite = existingSystems.find(w => w.id === selectedWebsiteId)
+    formData.set("websiteId",  selectedWebsiteId)
+    formData.set("systemName", chosenWebsite?.url ?? "")
 
     try {
       await addAction(formData)
@@ -104,6 +109,7 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
   }
 
   const isValid =
+    !!selectedWebsiteId &&  // ÚJ
     !!selectedCategory &&
     (selectedCategory !== "__custom__" || !!customCategory.trim()) &&
     !!retentionValue && parseInt(retentionValue, 10) > 0
@@ -132,6 +138,30 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+
+          {/* ÚJ: Rendszer / Weboldal */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Rendszer / Weboldal
+            </label>
+            <Select
+              value={selectedWebsiteId}
+              onValueChange={(v) => setSelectedWebsiteId(v ?? "")}
+            >
+              <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Válasszon rendszert..." />
+              </SelectTrigger>
+              <SelectContent>
+                {existingSystems.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.status === "offline"
+                      ? site.url
+                      : site.url.replace(/^https?:\/\//, "")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Kategória */}
           <div className="space-y-2">
@@ -179,7 +209,7 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
             </div>
           </div>
 
-          {/* Megőrzési idő – szám + egység */}
+          {/* Megőrzési idő */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <Clock size={12} />

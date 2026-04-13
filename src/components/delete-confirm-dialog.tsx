@@ -132,21 +132,24 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = fal
             </DialogHeader>
 
             <form onSubmit={handleDelete} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">
-                  Gépelje be a rendszer nevét a törléshez:
-                </label>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm text-slate-600 select-all mb-2 font-mono">
-                  {systemName}
+              
+              {!simpleConfirm && (
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">
+                    Gépelje be a rendszer nevét a törléshez:
+                  </label>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm text-slate-600 select-all mb-2 font-mono">
+                    {systemName}
+                  </div>
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={systemName}
+                    className="border-slate-200 focus-visible:ring-rose-500"
+                    autoComplete="off"
+                  />
                 </div>
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={systemName}
-                  className="border-slate-200 focus-visible:ring-rose-500"
-                  autoComplete="off"
-                />
-              </div>
+              )}
 
               <DialogFooter className="gap-2 sm:gap-0 pt-4">
                 <Button
