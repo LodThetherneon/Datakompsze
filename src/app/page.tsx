@@ -281,10 +281,13 @@ export default async function Home() {
                     {/* 3. Tájékoztató Verzió */}
                     <div className="col-span-2 flex flex-col items-center justify-center">
                       {policyVersion === 'N/A' ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold rounded-md shadow-sm">
+                        <Link
+                          href="/policies"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold rounded-md shadow-sm hover:bg-red-100 transition-colors"
+                        >
                           <span className="text-red-500 font-black text-[13px] leading-none">!</span>
                           Nincs dokumentum
-                        </span>
+                        </Link>
                       ) : (
                         <div className="flex flex-col items-center">
                           <span className="text-[14px] font-black text-slate-800">v{policyVersion}</span>

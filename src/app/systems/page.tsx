@@ -200,9 +200,11 @@ export default async function SystemsPage(props: {
                     <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
                       {sys.system_name}
                     </div>
-                    <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
-                      {sys.purpose || 'Nincs megadva kategória'}
-                    </div>
+                    {!isLinkedFromProcess && (
+                      <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
+                        {sys.purpose || 'Nincs megadva kategória'}
+                      </div>
+                    )}
                     {isLinkedFromProcess && (
                       <div className="mt-1.5 flex items-center gap-1">
                         <GitBranch size={10} className="text-emerald-500 shrink-0" />
