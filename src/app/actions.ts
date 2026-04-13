@@ -66,6 +66,9 @@ export async function addManualSystem(formData: FormData) {
     .from('companies').select('id').eq('user_id', user.id).single()
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
+  const websiteId = (formData.get('websiteId') as string)?.trim() 
+   if (!websiteId) throw new Error("A forrás weboldal megadása kötelező!")
+
   const dataTypeCat       = (formData.get('dataTypeCategory') as string)?.trim()
   const collectedData     = (formData.get('collectedData')    as string)?.trim()
   const retentionUntilRaw = (formData.get('retentionUntil')   as string)?.trim()
@@ -83,12 +86,12 @@ export async function addManualSystem(formData: FormData) {
 
   const { error } = await supabase.from('systems').insert([{
     company_id:      company.id,
-    website_id:      null,
+    website_id:      websiteId,
     system_name:     dataTypeCat,
     purpose:         dataTypeCat,
     collected_data:  collectedData,
     status:          'active',
-    source_type:     'manual',
+    source_type:     'process',
     retention_until: retentionUntilRaw,
     retention_display: retentionDisplay ?? null,
   }])

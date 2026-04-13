@@ -115,7 +115,7 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[2rem_1fr_1fr_160px_130px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
           <div className="flex items-center gap-1.5">
             <Tag size={11} />
@@ -159,7 +159,7 @@ export default async function SystemsPage(props: {
               const website   = websites.find((w) => w.id === sys.website_id)
               const isPending = sys.status === 'pending'
               const isManual  = sys.source_type === 'manual'
-              const isLinkedFromProcess = isManual && !!sys.collected_data?.trim()
+              const isLinkedFromProcess = sys.source_type === 'process'
 
               let retentionLabel: string | null = null
               if (isManual && sys.retention_until) {
@@ -180,8 +180,7 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_1fr_1fr_160px_130px_160px_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group"
-                >
+                  className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group">
                   {/* Ikon */}
                   <div className="flex items-center justify-center pt-0.5">
                     <span
@@ -198,14 +197,13 @@ export default async function SystemsPage(props: {
 
                   {/* Adattípus neve / Kategória */}
                   <div className="min-w-0">
-                    <div className="font-bold text-[14px] text-slate-800 line-clamp-2 leading-snug">
+                    <div className="font-bold text-[14px] text-slate-800 line-clamp-1 leading-snug">
+                      {website?.url?.replace(/^https?:\/\//, '') ?? sys.system_name}
+                    </div>
+                    <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
                       {sys.system_name}
                     </div>
-                    {!isLinkedFromProcess && (
-                      <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
-                        {sys.purpose || 'Nincs megadva kategória'}
-                      </div>
-                    )}
+
                     {isLinkedFromProcess && (
                       <div className="mt-1.5 flex items-center gap-1">
                         <GitBranch size={10} className="text-emerald-500 shrink-0" />

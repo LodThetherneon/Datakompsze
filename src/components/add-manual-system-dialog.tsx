@@ -237,19 +237,6 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
                 </SelectContent>
               </Select>
             </div>
-            {retentionValue && parseInt(retentionValue, 10) > 0 && (() => {
-              const d = calcRetentionUntil(retentionValue, retentionUnit)
-              if (!d) return null
-              const parts = d.split('-').map(Number)
-              const date = new Date(parts[0], parts[1] - 1, parts[2])
-              return (
-                <p className="text-[11px] text-emerald-600 font-medium pl-1">
-                  Kezelés vége: {new Intl.DateTimeFormat('hu-HU', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                  }).format(date)}
-                </p>
-              )
-            })()}
             <p className="text-[11px] text-slate-400">
               Ez az időtartam jelenik meg a generált adatkezelési tájékoztatóban.
             </p>

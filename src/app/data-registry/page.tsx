@@ -97,7 +97,7 @@ export default async function DataRegistryPage(props: {
         </div>
 
         {/* Fejléc – 6 egyenletes oszlop ikonokkal */}
-        <div className="grid grid-cols-[160px_180px_1fr_120px_140px_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[1.2fr_1.4fr_2fr_1fr_1fr_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
           <div className="flex items-center gap-1.5"><FileText size={11} /> Folyamat neve</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
@@ -131,8 +131,7 @@ export default async function DataRegistryPage(props: {
               return (
                 <div
                   key={proc.id}
-                  className="grid grid-cols-[160px_180px_1fr_120px_140px_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group"
-                >
+                  className="grid grid-cols-[1.2fr_1.4fr_2fr_1fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
                   {/* Szervezeti egység + dátum + csatolt weboldalak */}
                   <div className="min-w-0">
                     <div className="font-bold text-[13px] text-slate-800 truncate">
