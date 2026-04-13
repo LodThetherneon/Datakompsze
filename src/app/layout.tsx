@@ -68,6 +68,7 @@ export default async function RootLayout({
           <div className="flex h-screen w-full">
 
             {/* ================= SIDEBAR ================= */}
+            {user && (
             <aside className="hidden md:flex flex-col w-[280px] bg-white border-r border-slate-100 z-20 shadow-[2px_0_20px_rgba(0,0,0,0.015)]">
 
               {/* Logó */}
@@ -134,11 +135,13 @@ export default async function RootLayout({
                 </div>
               </div>
             </aside>
+             )}
 
             {/* ================= FŐ TARTALOM ================= */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative bg-[#f8faf9]">
 
               {/* ================= HEADER ================= */}
+              {user && (
               <header className="h-[72px] bg-white border-b border-slate-200/80 flex items-center justify-between px-8 z-10 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
 
                 <GlobalSearch />
@@ -175,13 +178,17 @@ export default async function RootLayout({
                   </div>
                 </div>
               </header>
+                  )}
 
               {/* ================= TARTALOM & FOOTER ================= */}
-              <main className="flex-1 overflow-y-auto scroll-smooth">
-                <div className="min-h-[calc(100vh-72px-76px)] p-6 lg:p-12 xl:px-16 w-full">
+              <main className={`flex-1 ${!user ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth`}>
+                <div className={user
+                  ? "min-h-[calc(100vh-72px-76px)] p-6 lg:p-12 xl:px-16 w-full"
+                  : "h-full w-full p-0 m-0"
+                }>
                   {children}
                 </div>
-
+                 {user && (
                 <footer className="border-t border-slate-200 bg-white py-6 px-6 lg:px-12 xl:px-16 w-full">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-[13px] text-slate-500">
                     <div>
@@ -194,6 +201,7 @@ export default async function RootLayout({
                     </div>
                   </div>
                 </footer>
+                  )}
               </main>
             </div>
           </div>
