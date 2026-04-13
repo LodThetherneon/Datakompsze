@@ -75,30 +75,52 @@ export async function addManualSystem(formData: FormData) {
 
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
-  const sourceId = formData.get('systemId') as string
-  const dataTypeCategory = formData.get('dataTypeCategory') as string
-  const collectedData = formData.get('collectedData') as string
-
-  const { data: parentSource } = await supabase
-    .from('websites')
-    .select('url, status')
-    .eq('id', sourceId)
+  const { data: company } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('user_id', user.id)
     .single()
 
-  if (!parentSource) throw new Error("A kiválasztott forrás nem található!")
+  if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  const systemName = parentSource.status === 'offline'
-    ? parentSource.url
-    : parentSource.url.replace(/^https?:\/\//, '')
+  const dataTypeCategory = formData.get('dataTypeCategory') as string
+  const collectedData = formData.get('collectedData') as string
+  const retentionUntilRaw = formData.get('retentionUntil') as string
+
+  if (!dataTypeCategory?.trim()) throw new Error("A kategória megadása kötelező!")
+  if (!collectedData?.trim()) throw new Error("A kezelt adat megadása kötelező!")
+  if (!retentionUntilRaw) throw new Error("Az adatkezelés végének megadása kötelező!")
+
+  // Dátum validáció
+  const retentionUntilDate = new Date(retentionUntilRaw)
+  if (isNaN(retentionUntilDate.getTime())) throw new Error("Érvénytelen dátum formátum!")
+
+  // Az első elérhető céges weboldalt/forrást rendeljük hozzá (manuális adatnak nincs dedikált forrása)
+  const { data: websites } = await supabase
+    .from('websites')
+    .select('id, url, status')
+    .eq('company_id', company.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  if (!websites || websites.length === 0) {
+    throw new Error("Nincs még felvett forrás! Először adjon hozzá egy weboldalt vagy rendszert a Dashboardon.")
+  }
+
+  const targetWebsite = websites[0]
+  const systemName = targetWebsite.status === 'offline'
+    ? targetWebsite.url
+    : targetWebsite.url.replace(/^https?:\/\//, '')
 
   const { error } = await supabase.from('systems').insert([
     {
-      website_id: sourceId,
+      website_id: targetWebsite.id,
       system_name: systemName,
       purpose: dataTypeCategory,
       collected_data: collectedData,
       status: 'active',
-      source_type: 'manual'
+      source_type: 'manual',
+      retention_until: retentionUntilRaw, // YYYY-MM-DD formátum, date oszlopba megy
     }
   ])
 
@@ -120,8 +142,6 @@ export async function deleteSystem(formData: FormData) {
 
   const { error } = await supabase.from('systems').delete().eq('id', id)
   if (error) throw error
-
-  // revalidatePath-t NEM hívjuk itt — a dialog kezeli majd
 
   return { websiteId: sys?.website_id ?? null }
 }
@@ -174,29 +194,31 @@ export async function generatePolicy(formData: FormData) {
     newVersion = `${parts[0]}.${parseInt(parts[1] || '0') + 1}`
   }
 
+  // A generálás PONTOS dátuma – ez kerül a dokumentumba
+  const generatedAt = new Date()
   const today = new Intl.DateTimeFormat('hu-HU', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  }).format(new Date())
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
+  }).format(generatedAt)
 
   const allSystems = systems || []
 
-  const thirdParties = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes \u0171rlap'))
+  const thirdParties = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap'))
   const cookieSystems = thirdParties
-  const formSystems = allSystems.filter(s => s.system_name?.includes('Webes \u0171rlap'))
+  const formSystems = allSystems.filter(s => s.system_name?.includes('Webes űrlap'))
   const manualSystems = allSystems.filter(s => s.source_type === 'manual')
 
   const dpoSection = company.dpo_name
-    ? `<p>Az adatkezel\u0151 adatvédelmi tisztvisel\u0151jének neve: <strong>${company.dpo_name}</strong><br>
+    ? `<p>Az adatkezelő adatvédelmi tisztviselőjének neve: <strong>${company.dpo_name}</strong><br>
        E-mail: <a href="mailto:${company.dpo_email}">${company.dpo_email}</a></p>`
-    : `<p>Az adatkezel\u0151 nem nevezett ki adatvédelmi tisztvisel\u0151t (DPO), mivel erre jogszabályi kötelezettség jelenleg nem áll fenn.</p>`
+    : `<p>Az adatkezelő nem nevezett ki adatvédelmi tisztviselőt (DPO), mivel erre jogszabályi kötelezettség jelenleg nem áll fenn.</p>`
 
   function legalBasis(s: any): string {
     const p = (s.purpose || '').toLowerCase()
-    if (p.includes('h\u00edrlevél') || p.includes('marketing') || p.includes('remarketing') || p.includes('hirdetés')) {
+    if (p.includes('hírlevél') || p.includes('marketing') || p.includes('remarketing') || p.includes('hirdetés')) {
       return 'Hozzájárulás (GDPR 6. cikk (1) a))'
     }
-    if (p.includes('fizetés') || p.includes('számlázás') || p.includes('rendelés') || p.includes('szerz\u0151dés')) {
-      return 'Szerz\u0151dés teljesítése (GDPR 6. cikk (1) b))'
+    if (p.includes('fizetés') || p.includes('számlázás') || p.includes('rendelés') || p.includes('szerződés')) {
+      return 'Szerződés teljesítése (GDPR 6. cikk (1) b))'
     }
     if (p.includes('jogi') || p.includes('törvény') || p.includes('adóügyi')) {
       return 'Jogi kötelezettség (GDPR 6. cikk (1) c))'
@@ -207,13 +229,23 @@ export async function generatePolicy(formData: FormData) {
     return 'Hozzájárulás (GDPR 6. cikk (1) a))'
   }
 
+  // Megőrzési idő: manuális rendszereknél a retention_until dátumból számítunk, másoknál logika alapján
   function retentionPeriod(s: any): string {
+    // Manuális bejegyzésnél a tárolt dátumot jelenítjük meg
+    if (s.source_type === 'manual' && s.retention_until) {
+      const d = new Date(s.retention_until)
+      if (!isNaN(d.getTime())) {
+        return new Intl.DateTimeFormat('hu-HU', {
+          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
+        }).format(d) + '-ig'
+      }
+    }
     const p = (s.purpose || '').toLowerCase()
-    if (p.includes('h\u00edrlevél') || p.includes('marketing')) return 'Leiratkozásig'
+    if (p.includes('hírlevél') || p.includes('marketing')) return 'Leiratkozásig'
     if (p.includes('fizetés') || p.includes('számlázás')) return '8 év (számviteli törvény)'
     if (p.includes('analitik') || p.includes('statisztik')) return '26 hónap'
-    if (p.includes('chat') || p.includes('kapcsolat') || p.includes('\u00fczenet')) return '1 év'
-    if (p.includes('s\u00fcti') || p.includes('cookie') || p.includes('remarketing')) return 'S\u00fcti lejártáig (max. 13 hónap)'
+    if (p.includes('chat') || p.includes('kapcsolat') || p.includes('üzenet')) return '1 év'
+    if (p.includes('süti') || p.includes('cookie') || p.includes('remarketing')) return 'Süti lejártáig (max. 13 hónap)'
     return '5 év'
   }
 
@@ -242,7 +274,7 @@ export async function generatePolicy(formData: FormData) {
   const cookieSection = cookieSystems.length > 0
     ? `
     <h2>5. Sütik (Cookie-k) használata</h2>
-    <p>A weboldal sütiket (cookie-kat) használ. A sütik kis szövegfájlok, amelyeket a böngészésző tárol az eszközön. Az alábbi sütiket alkalmazzuk:</p>
+    <p>A weboldal sütiket (cookie-kat) használ. A sütik kis szövegfájlok, amelyeket a böngésző tárol az eszközön. Az alábbi sütiket alkalmazzuk:</p>
     <table>
       <thead><tr>
         <th>Sütik / Szolgáltatás neve</th>
@@ -305,7 +337,7 @@ export async function generatePolicy(formData: FormData) {
 <h2>2. Adatvédelmi tisztviselő (DPO)</h2>
 ${dpoSection}
 
-<h2>3. A kezelt adatok, az adatkezelés célja, jogalapja és megörzési ideje</h2>
+<h2>3. A kezelt adatok, az adatkezelés célja, jogalapja és megőrzési ideje</h2>
 <p>A(z) <strong>${siteName}</strong> az alábbi személyes adatokat kezeli:</p>
 <table>
   <thead><tr>
@@ -313,7 +345,7 @@ ${dpoSection}
     <th>Kezelt adatok</th>
     <th>Az adatkezelés célja</th>
     <th>Jogalap</th>
-    <th>Megörzési idő</th>
+    <th>Megőrzési idő</th>
   </tr></thead>
   <tbody>${mainTableRows}</tbody>
 </table>
@@ -328,7 +360,7 @@ ${dpoSection}
   </tr></thead>
   <tbody>${thirdPartyRows}</tbody>
 </table>
-<p style="margin-top:12px;font-size:13px;color:#64748b">Ezek a szolgáltatók saját adatkezelési tájékoztatójuk szerint kezelik az általuk gy\u0171jtött adatokat.</p>
+<p style="margin-top:12px;font-size:13px;color:#64748b">Ezek a szolgáltatók saját adatkezelési tájékoztatójuk szerint kezelik az általuk gyűjtött adatokat.</p>
 
 ${cookieSection}
 

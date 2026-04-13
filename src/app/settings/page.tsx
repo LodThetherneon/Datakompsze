@@ -110,11 +110,6 @@ export default async function SettingsPage() {
                   ? 'border-blue-200 shadow-md'
                   : 'border-slate-100'
               }`}>
-                {plan.highlight && !isActive && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
-                    Legnépszerűbb
-                  </div>
-                )}
                 {isActive && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
                     Jelenlegi
