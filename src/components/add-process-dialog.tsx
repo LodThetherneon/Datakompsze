@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, FolderKanban, ChevronDown, Check } from 'lucide-react'
+import { Plus, FolderKanban, ChevronDown, Check, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/toast-provider'
@@ -9,6 +9,10 @@ import {
   Dialog, DialogContent, DialogDescription,
   DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 
 interface Department {
   id: string
@@ -21,6 +25,12 @@ interface Props {
   departments: Department[]
   knownProcessNames: string[]
 }
+
+const UNIT_OPTIONS = [
+  { value: 'nap',   label: 'Nap' },
+  { value: 'hónap', label: 'Hónap' },
+  { value: 'év',    label: 'Év' },
+]
 
 // ─── Mini combobox ────────────────────────────────────────────────────────────
 function DepartmentCombobox({
@@ -36,10 +46,8 @@ function DepartmentCombobox({
   const [inputVal, setInputVal] = useState(value)
   const ref = useRef<HTMLDivElement>(null)
 
-  // sync külső value → input
   useEffect(() => { setInputVal(value) }, [value])
 
-  // kattintás kívülre → bezár
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -90,14 +98,12 @@ function DepartmentCombobox({
         </button>
       </div>
 
-      {/* Új badge — jelzi, hogy ez egy ismeretlen egység */}
       {showNewBadge && (
         <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full pointer-events-none">
           ÚJ
         </span>
       )}
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute z-50 top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto">
           {filtered.length === 0 && inputVal.trim() === '' && (
@@ -118,7 +124,6 @@ function DepartmentCombobox({
               )}
             </button>
           ))}
-          {/* Ha van szabad szöveges bevitel ami nem egyezik semmivel */}
           {inputVal.trim() !== '' && !isKnown && (
             <button
               type="button"
@@ -142,11 +147,13 @@ export function AddProcessDialog({
   departments,
   knownProcessNames,
 }: Props) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]               = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [deptValue, setDeptValue] = useState('')
+  const [deptValue, setDeptValue]     = useState('')
+  const [retentionValue, setRetentionValue] = useState('')
+  const [retentionUnit, setRetentionUnit]   = useState('év')
+  
 
-  // Confirm állapot: ha új szervezeti egységet adtak meg
   const [confirmNewDept, setConfirmNewDept] = useState<{
     name: string
     pendingFormData: FormData
@@ -165,7 +172,11 @@ export function AddProcessDialog({
     const formData = new FormData(e.currentTarget)
     formData.set('department_name', deptValue.trim())
 
-    // Ha ismeretlen szervezeti egység → confirm prompt
+    const retentionStr = retentionValue.trim()
+      ? `${retentionValue.trim()} ${retentionUnit}`
+      : ''
+    formData.set('retention_period', retentionStr)
+
     if (deptValue.trim() && !isKnownDept) {
       setConfirmNewDept({ name: deptValue.trim(), pendingFormData: formData })
       return
@@ -180,6 +191,8 @@ export function AddProcessDialog({
       await addAction(formData)
       setOpen(false)
       setDeptValue('')
+      setRetentionValue('')
+      setRetentionUnit('év')
       setConfirmNewDept(null)
       success('Folyamat sikeresen rögzítve!')
     } catch (err: any) {
@@ -189,7 +202,6 @@ export function AddProcessDialog({
     }
   }
 
-  // "Igen, mentse el" → először addDept, aztán folyamat
   const handleConfirmSaveDept = async () => {
     if (!confirmNewDept) return
     setIsSubmitting(true)
@@ -204,7 +216,6 @@ export function AddProcessDialog({
     }
   }
 
-  // "Nem, csak most" → menti a folyamatot, de az egységet nem adja hozzá
   const handleConfirmSkipDept = async () => {
     if (!confirmNewDept) return
     await submitProcess(confirmNewDept.pendingFormData)
@@ -214,6 +225,8 @@ export function AddProcessDialog({
     setOpen(v)
     if (!v) {
       setDeptValue('')
+      setRetentionValue('')
+      setRetentionUnit('év')
       setConfirmNewDept(null)
     }
   }
@@ -297,7 +310,7 @@ export function AddProcessDialog({
 
               <form onSubmit={handleSubmit} className="space-y-4 pt-4">
 
-                {/* Szervezeti egység combobox */}
+                {/* Szervezeti egység */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                     Szervezeti egység
@@ -345,18 +358,41 @@ export function AddProcessDialog({
                   />
                 </div>
 
-                {/* Megőrzési idő + Tárolás helye */}
+                {/* Megőrzési idő (szám + egység) + Tárolás helye */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                      <Clock size={11} />
                       Megőrzési idő
                     </label>
-                    <input
-                      name="retention_period"
-                      placeholder="Pl.: 5 év..."
-                      className="w-full h-11 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[14px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="999"
+                        value={retentionValue}
+                        onChange={(e) => setRetentionValue(e.target.value)}
+                        placeholder="Pl.: 5"
+                        className="w-16 h-11 px-2 rounded-lg border border-slate-200 bg-slate-50 text-[14px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-center"
+                      />
+                      <Select value={retentionUnit} onValueChange={(v: string | null) => setRetentionUnit(v ?? "év")}>
+                        <SelectTrigger className="flex-1 h-11 bg-slate-50 border-slate-200 text-[13px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UNIT_OPTIONS.map((u) => (
+                            <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {retentionValue && parseInt(retentionValue, 10) > 0 && (
+                      <p className="text-[11px] text-emerald-600 font-medium pl-0.5">
+                        = {retentionValue} {retentionUnit}
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                       Tárolás helye

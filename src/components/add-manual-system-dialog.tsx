@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Database, FileText, Calendar, Link2 } from "lucide-react"
+import { Plus, Database, FileText, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -26,29 +26,47 @@ interface AddManualSystemDialogProps {
   existingSystems: Website[]
 }
 
+const CATEGORY_OPTIONS = [
+  "Személyes azonosítók (Név, Születési adat)",
+  "Elérhetőségek (Email, Telefon, Cím)",
+  "Pénzügyi adatok (Bankszámla, Bankkártya)",
+  "Technikai adatok (IP cím, Sütik, Eszköz)",
+  "Munkavállalói adatok (Önéletrajz, Bér)",
+  "Különleges adatok (Egészségügyi, Biometrikus)",
+  "Vizuális adatok (Kamerafelvétel, Fénykép)",
+]
+
+const UNIT_OPTIONS = [
+  { value: "nap",   label: "Nap" },
+  { value: "hónap", label: "Hónap" },
+  { value: "év",    label: "Év" },
+]
+
+function calcRetentionUntil(value: string, unit: string): string | null {
+  const n = parseInt(value, 10)
+  if (!n || n <= 0) return null
+  const d = new Date()
+  if (unit === "nap")   d.setDate(d.getDate() + n)
+  if (unit === "hónap") d.setMonth(d.getMonth() + n)
+  if (unit === "év")    d.setFullYear(d.getFullYear() + n)
+  return d.toISOString().split("T")[0]
+}
+
 export function AddManualSystemDialog({ addAction, existingSystems }: AddManualSystemDialogProps) {
-  const [open, setOpen]                           = useState(false)
-  const [isSubmitting, setIsSubmitting]           = useState(false)
-  const [selectedWebsiteId, setSelectedWebsiteId] = useState<string>("")
-  const [selectedCategory, setSelectedCategory]   = useState<string>("")
-  const [customCategory, setCustomCategory]       = useState<string>("")
+  const [open, setOpen]                         = useState(false)
+  const [isSubmitting, setIsSubmitting]         = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [customCategory, setCustomCategory]     = useState<string>("")
+  const [retentionValue, setRetentionValue]     = useState<string>("")
+  const [retentionUnit, setRetentionUnit]       = useState<string>("év")
   const { success, error } = useToast()
-
-  function getSourceLabel(source: Website): string {
-    if (source.status === "offline") return source.url
-    return source.url.replace(/^https?:\/\//, "")
-  }
-
-  function getSystemName(id: string): string {
-    const found = existingSystems.find((s) => s.id === id)
-    return found ? getSourceLabel(found) : ""
-  }
 
   const handleClose = () => {
     setOpen(false)
-    setSelectedWebsiteId("")
     setSelectedCategory("")
     setCustomCategory("")
+    setRetentionValue("")
+    setRetentionUnit("év")
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,13 +76,21 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
 
     const formData = new FormData(e.currentTarget)
 
-    // Kategória
-    formData.set("dataTypeCategory",
-      selectedCategory === "__custom__" ? customCategory.trim() : selectedCategory
-    )
-    // Kapcsolt rendszer ID és megjelenítési neve
-    formData.set("websiteId",  selectedWebsiteId)
-    formData.set("systemName", getSystemName(selectedWebsiteId))
+    const finalCategory = selectedCategory === "__custom__"
+      ? customCategory.trim()
+      : selectedCategory
+    formData.set("dataTypeCategory", finalCategory)
+
+    const retentionDate = calcRetentionUntil(retentionValue, retentionUnit)
+    if (!retentionDate) {
+      error("Adjon meg érvényes megőrzési időt!")
+      setIsSubmitting(false)
+      return
+    }
+    formData.set("retentionUntil",   retentionDate)
+    formData.set("retentionDisplay", `${retentionValue} ${retentionUnit}`)
+    formData.set("websiteId",  "")
+    formData.set("systemName", "")
 
     try {
       await addAction(formData)
@@ -77,12 +103,10 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
     }
   }
 
-  const today = new Date().toISOString().split("T")[0]
-
   const isValid =
-    !!selectedWebsiteId &&
     !!selectedCategory &&
-    (selectedCategory !== "__custom__" || !!customCategory.trim())
+    (selectedCategory !== "__custom__" || !!customCategory.trim()) &&
+    !!retentionValue && parseInt(retentionValue, 10) > 0
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true) }}>
@@ -103,46 +127,11 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
             Kezelt adattípus felvétele
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500 pt-1">
-            Válassza ki a kapcsolt rendszert, adja meg a kategóriát, a kezelt adatot és az adatkezelés végét.
+            Adja meg az adattípus kategóriáját, a kezelt adatot és a megőrzési időt.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-
-          {/* Kapcsolt rendszer */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-              <Link2 size={12} />
-              Kapcsolt rendszer / forrás
-            </label>
-            {existingSystems.length === 0 ? (
-              <div className="h-11 flex items-center px-3 rounded-lg bg-amber-50 border border-amber-200 text-[13px] text-amber-700 font-medium">
-                Nincs felvett forrás. Először adj hozzá egyet a Dashboardon.
-              </div>
-            ) : (
-              <Select
-                value={selectedWebsiteId}
-                onValueChange={(v) => setSelectedWebsiteId(v ?? "")}
-              >
-                <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Válasszon rendszert..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {existingSystems.map((source) => (
-                    <SelectItem key={source.id} value={source.id}>
-                      <span className="flex items-center gap-2">
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-                          source.status === "offline"   ? "bg-violet-400" :
-                          source.status === "scanning"  ? "bg-amber-400"  : "bg-emerald-400"
-                        }`} />
-                        {getSourceLabel(source)}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
 
           {/* Kategória */}
           <div className="space-y-2">
@@ -154,16 +143,12 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
               onValueChange={(v) => setSelectedCategory(v ?? "")}
             >
               <SelectTrigger className="w-full h-11 bg-slate-50 border-slate-200">
-                <SelectValue placeholder="Válasszon kategóriát..." />
+                <SelectValue placeholder="Válasszon vagy írjon be kategóriát..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Személyes azonosítók (Név, Születési adat)">Személyes azonosítók (Név, Születési adat)</SelectItem>
-                <SelectItem value="Elérhetőségek (Email, Telefon, Cím)">Elérhetőségek (Email, Telefon, Cím)</SelectItem>
-                <SelectItem value="Pénzügyi adatok (Bankszámla, Bankkártya)">Pénzügyi adatok (Bankszámla, Bankkártya)</SelectItem>
-                <SelectItem value="Technikai adatok (IP cím, Sütik, Eszköz)">Technikai adatok (IP cím, Sütik, Eszköz)</SelectItem>
-                <SelectItem value="Munkavállalói adatok (Önéletrajz, Bér)">Munkavállalói adatok (Önéletrajz, Bér)</SelectItem>
-                <SelectItem value="Különleges adatok (Egészségügyi, Biometrikus)">Különleges adatok (Egészségügyi, Biometrikus)</SelectItem>
-                <SelectItem value="Vizuális adatok (Kamerafelvétel, Fénykép)">Vizuális adatok (Kamerafelvétel, Fénykép)</SelectItem>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
                 <SelectItem value="__custom__">✏️ Egyéb – saját megadás...</SelectItem>
               </SelectContent>
             </Select>
@@ -194,21 +179,49 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
             </div>
           </div>
 
-          {/* Adatkezelés vége */}
+          {/* Megőrzési idő – szám + egység */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-              <Calendar size={12} />
-              Adatkezelés vége (meddig kezeljük)
+              <Clock size={12} />
+              Megőrzési idő (meddig kezeljük)
             </label>
-            <Input
-              type="date"
-              name="retentionUntil"
-              min={today}
-              className="h-11 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500"
-              required
-            />
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="999"
+                value={retentionValue}
+                onChange={(e) => setRetentionValue(e.target.value)}
+                placeholder="Pl.: 5"
+                className="flex-1 h-11 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500"
+                required
+              />
+              <Select value={retentionUnit} onValueChange={(v: string | null) => setRetentionUnit(v ?? "év")}>
+                <SelectTrigger className="w-32 h-11 bg-slate-50 border-slate-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIT_OPTIONS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {retentionValue && parseInt(retentionValue, 10) > 0 && (() => {
+              const d = calcRetentionUntil(retentionValue, retentionUnit)
+              if (!d) return null
+              const parts = d.split('-').map(Number)
+              const date = new Date(parts[0], parts[1] - 1, parts[2])
+              return (
+                <p className="text-[11px] text-emerald-600 font-medium pl-1">
+                  Kezelés vége: {new Intl.DateTimeFormat('hu-HU', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                  }).format(date)}
+                </p>
+              )
+            })()}
             <p className="text-[11px] text-slate-400">
-              Ez a dátum jelenik meg a generált adatkezelési tájékoztatóban a megőrzési idő oszlopban.
+              Ez az időtartam jelenik meg a generált adatkezelési tájékoztatóban.
             </p>
           </div>
 

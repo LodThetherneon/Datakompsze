@@ -66,15 +66,11 @@ export async function addManualSystem(formData: FormData) {
     .from('companies').select('id').eq('user_id', user.id).single()
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  // Form mezők kiolvasása
-  const websiteId       = (formData.get('websiteId')        as string)?.trim()
-  const systemName      = (formData.get('systemName')       as string)?.trim()
-  const dataTypeCat     = (formData.get('dataTypeCategory') as string)?.trim()
-  const collectedData   = (formData.get('collectedData')    as string)?.trim()
-  const retentionUntilRaw = (formData.get('retentionUntil') as string)?.trim()
+  const dataTypeCat       = (formData.get('dataTypeCategory') as string)?.trim()
+  const collectedData     = (formData.get('collectedData')    as string)?.trim()
+  const retentionUntilRaw = (formData.get('retentionUntil')   as string)?.trim()
+  const retentionDisplay  = (formData.get('retentionDisplay') as string)?.trim()
 
-  if (!websiteId)         throw new Error("A kapcsolt rendszer megadása kötelező!")
-  if (!systemName)        throw new Error("Az adattípus nevének megadása kötelező!")
   if (!dataTypeCat)       throw new Error("A kategória megadása kötelező!")
   if (!collectedData)     throw new Error("A kezelt adat megadása kötelező!")
   if (!retentionUntilRaw) throw new Error("Az adatkezelés végének megadása kötelező!")
@@ -85,23 +81,16 @@ export async function addManualSystem(formData: FormData) {
   const retentionDate = new Date(parts[0], parts[1] - 1, parts[2])
   if (isNaN(retentionDate.getTime())) throw new Error("Érvénytelen dátum!")
 
-  // Biztonsági ellenőrzés: a websiteId valóban ehhez a céghez tartozik
-  const { data: website } = await supabase
-    .from('websites').select('id')
-    .eq('id', websiteId)
-    .eq('company_id', company.id)
-    .single()
-
-  if (!website) throw new Error("A kiválasztott forrás nem található vagy nem a te cégedhez tartozik!")
-
   const { error } = await supabase.from('systems').insert([{
-    website_id:      websiteId,
-    system_name:     systemName,
+    company_id:      company.id,
+    website_id:      null,
+    system_name:     dataTypeCat,
     purpose:         dataTypeCat,
     collected_data:  collectedData,
     status:          'active',
     source_type:     'manual',
-    retention_until: retentionUntilRaw,   // YYYY-MM-DD → date oszlop
+    retention_until: retentionUntilRaw,
+    retention_display: retentionDisplay ?? null,
   }])
 
   if (error) throw error

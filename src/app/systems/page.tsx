@@ -8,7 +8,10 @@ import { SearchBar } from '@/components/search-bar'
 import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
 import { AcceptSystemButton } from '@/components/accept-system-button'
-import { PenLine, ScanSearch } from 'lucide-react'
+import {
+  PenLine, ScanSearch, Tag, Database,
+  Globe, CheckCircle2,
+} from 'lucide-react'
 
 export default async function SystemsPage(props: {
   searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
@@ -40,7 +43,6 @@ export default async function SystemsPage(props: {
         websites = webData
         const websiteIds = webData.map((w) => w.id)
 
-        // Pending szám (szűrőtől függetlenül)
         const { count } = await supabase
           .from('systems')
           .select('*', { count: 'exact', head: true })
@@ -48,7 +50,6 @@ export default async function SystemsPage(props: {
           .eq('status', 'pending')
         pendingCount = count ?? 0
 
-        // Fő lekérdezés
         let query = supabase
           .from('systems').select('*')
           .in('website_id', websiteIds)
@@ -112,13 +113,25 @@ export default async function SystemsPage(props: {
           </div>
         </div>
 
-        {/* Táblázat fejléc */}
+        {/* Táblázat fejléc – ikonokkal */}
         <div className="grid grid-cols-[2rem_280px_200px_160px_160px_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div />
-          <div>Adattípus neve / Kategória</div>
-          <div>Kezelt adatok</div>
-          <div>Forrás</div>
-          <div>Státusz</div>
+          <div className="flex items-center gap-1.5">
+            <Tag size={11} />
+            Adattípus neve / Kategória
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Database size={11} />
+            Kezelt adatok
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Globe size={11} />
+            Forrás
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 size={11} />
+            Státusz
+          </div>
           <div className="text-right pr-4">Műveletek</div>
         </div>
 
@@ -142,7 +155,7 @@ export default async function SystemsPage(props: {
               const isPending = sys.status === 'pending'
               const isManual  = sys.source_type === 'manual'
 
-              // Kezelés vége — timezone-safe formázás
+              // Kezelés vége – timezone-safe formázás
               let retentionLabel: string | null = null
               if (isManual && sys.retention_until) {
                 const parts = String(sys.retention_until).split('-').map(Number)
@@ -156,6 +169,10 @@ export default async function SystemsPage(props: {
                   }
                 }
               }
+
+              // Megőrzési idő szöveges megjelenítés (pl. "5 év")
+              const retentionDisplay: string | null =
+                sys.retention_display ?? null
 
               return (
                 <div
@@ -184,10 +201,14 @@ export default async function SystemsPage(props: {
                     <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
                       {sys.purpose || 'Nincs megadva kategória'}
                     </div>
-                    {retentionLabel && (
+                    {/* Megőrzési idő: "5 év" formátum prioritás, különben pontos dátum */}
+                    {(retentionDisplay || retentionLabel) && (
                       <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                         <span>🗓</span>
-                        <span>Kezelés vége: {retentionLabel}</span>
+                        {retentionDisplay
+                          ? <span>Megőrzés: {retentionDisplay}</span>
+                          : <span>Kezelés vége: {retentionLabel}</span>
+                        }
                       </div>
                     )}
                   </div>
