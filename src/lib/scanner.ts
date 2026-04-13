@@ -94,7 +94,6 @@ const FORM_FIELD_PATTERNS = [
 // ─── GDPR-alapú megőrzési idők ────────────────────────────────────────────────
 
 const RETENTION_MAP: Record<string, string | null> = {
-  // Trackerek
   'Google Analytics': '2 év',
   'Google Tag Manager': '2 év',
   'Google Search Console': '2 év',
@@ -143,7 +142,6 @@ const RETENTION_MAP: Record<string, string | null> = {
   'Drupal CMS': '2 év',
   'WordPress': '2 év',
   'Biztonsági HTTP fejlécek': null,
-  // Form mezők
   'E-mail cím': '3 év',
   'Telefonszám': '3 év',
   'Teljes név / Keresztnév / Vezetéknév': '5 év',
@@ -469,12 +467,15 @@ export async function runScanner(websiteId: string, url: string) {
   try {
     const { trackers, formFields, pagesScanned } = await deepScan(url)
 
-    await supabase
+    // Meglévő scanned sorok lekérése (NEM töröljük őket)
+    const { data: allExisting } = await supabase
       .from('systems')
-      .delete()
+      .select('id, system_name, collected_data, retention_period')
       .eq('website_id', websiteId)
       .eq('source_type', 'scanned')
-      .eq('status', 'pending')
+
+    const existingByName = new Map(allExisting?.map(s => [s.system_name, s]) ?? [])
+    const existingByData = new Map(allExisting?.map(s => [s.collected_data, s]) ?? [])
 
     const { data: activeSystems } = await supabase
       .from('systems')
@@ -484,7 +485,7 @@ export async function runScanner(websiteId: string, url: string) {
       .eq('status', 'active')
 
     const activeNames = new Set(activeSystems?.map(s => s.system_name) ?? [])
-    const activeData = new Set(activeSystems?.map(s => s.collected_data) ?? [])
+    const activeData  = new Set(activeSystems?.map(s => s.collected_data) ?? [])
 
     const { data: manualSystems } = await supabase
       .from('systems')
@@ -494,38 +495,66 @@ export async function runScanner(websiteId: string, url: string) {
 
     const siteName = url.replace(/^https?:\/\//, '').split('/')[0]
 
+    // ── Trackerek ──
     for (const tracker of trackers) {
       if (activeNames.has(tracker.name)) continue
+
       const existsManually = manualSystems?.some(
         m =>
           m.purpose?.toLowerCase().includes(tracker.purpose.toLowerCase()) ||
           m.collected_data?.toLowerCase().includes(tracker.name.toLowerCase())
       )
-      if (!existsManually) {
+      if (existsManually) continue
+
+      const existing = existingByName.get(tracker.name)
+      if (existing) {
+        // Már létezik → csak akkor frissíti a retention_period-ot ha még NULL
+        if (!existing.retention_period) {
+          await supabase
+            .from('systems')
+            .update({ retention_period: RETENTION_MAP[tracker.name] ?? null })
+            .eq('id', existing.id)
+        }
+      } else {
+        // Új sor
         await supabase.from('systems').insert({
           website_id: websiteId,
           system_name: tracker.name,
           purpose: tracker.purpose,
           collected_data: tracker.collected_data,
-          retention_period: RETENTION_MAP[tracker.name] ?? null,  // ← ÚJ
+          retention_period: RETENTION_MAP[tracker.name] ?? null,
           status: 'pending',
           source_type: 'scanned',
         })
       }
     }
 
+    // ── Form mezők ──
     for (const field of formFields) {
       if (activeData.has(field.data)) continue
+
       const existsManually = manualSystems?.some(m =>
         m.collected_data?.toLowerCase().includes(field.data.toLowerCase())
       )
-      if (!existsManually) {
+      if (existsManually) continue
+
+      const existing = existingByData.get(field.data)
+      if (existing) {
+        // Már létezik → csak akkor frissíti a retention_period-ot ha még NULL
+        if (!existing.retention_period) {
+          await supabase
+            .from('systems')
+            .update({ retention_period: RETENTION_MAP[field.data] ?? null })
+            .eq('id', existing.id)
+        }
+      } else {
+        // Új sor
         await supabase.from('systems').insert({
           website_id: websiteId,
           system_name: `${siteName} – Webes űrlap`,
           purpose: field.purpose,
           collected_data: field.data,
-          retention_period: RETENTION_MAP[field.data] ?? null,  // ← ÚJ
+          retention_period: RETENTION_MAP[field.data] ?? null,
           status: 'pending',
           source_type: 'scanned',
         })
@@ -541,7 +570,7 @@ export async function runScanner(websiteId: string, url: string) {
       })
       .eq('id', websiteId)
 
-    console.log(`✅ Scanner kész: ${pagesScanned} oldal, ${trackers.length} tracker, ${formFields.length} form mező`)
+    console.log(`Scanner kész: ${pagesScanned} oldal, ${trackers.length} tracker, ${formFields.length} form mező`)
   } catch (err) {
     console.error('Scanner hiba:', err)
     await supabase

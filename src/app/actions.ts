@@ -515,3 +515,11 @@ export async function acceptAllPending() {
   if (error) throw error
   revalidatePath('/systems')
 }
+
+export async function updateRetentionPeriod(id: string, value: string) {
+  const supabase = await createClient()
+  await supabase
+    .from('systems')
+    .update({ retention_period: value })
+    .eq('id', id)
+}

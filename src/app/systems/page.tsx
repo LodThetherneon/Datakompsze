@@ -7,6 +7,7 @@ import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { SearchBar } from '@/components/search-bar'
 import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
+import { RetentionEditor } from '@/components/retention-editor'
 import { AcceptSystemButton } from '@/components/accept-system-button'
 import {
   PenLine, ScanSearch, Tag, Database,
@@ -249,15 +250,15 @@ export default async function SystemsPage(props: {
 
                   {/* Megőrzési idő */}
                   <div className="pt-0.5">
-                    {retentionDisplay ? (
-                      <span className="text-[12px] font-medium text-slate-600">{retentionDisplay}</span>
-                    ) : retentionLabel ? (
-                      <span className="text-[12px] font-medium text-slate-600">{retentionLabel}</span>
-                    ) : sys.retention_period ? (
-                      <span className="text-[12px] font-medium text-slate-600">{sys.retention_period}</span>
-                    ) : (
-                      <span className="text-[12px] text-slate-300">—</span>
-                    )}
+                    <RetentionEditor
+                      id={sys.id}
+                      value={
+                        sys.retention_period ??
+                        retentionDisplay ??
+                        retentionLabel ??
+                        null
+                      }
+                    />
                   </div>
 
                   {/* Státusz */}
