@@ -15,7 +15,7 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Service role klienssel olvassuk az adatot (bypass RLS)
+  // Service role klienssel olvassuk az adatot
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -39,10 +39,10 @@ export async function GET(
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Adatkezelesi Tajekoztato</title>
+  <title>Adatkezelesi Tajekoztato v${policy.version}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a2e; background: #ffffff; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a2e; background: #fff; }
     .page-wrapper { max-width: 760px; margin: 0 auto; padding: 40px 50px; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid #2563eb; margin-bottom: 32px; }
     .header-brand { font-size: 13pt; font-weight: 700; color: #2563eb; }
@@ -55,12 +55,13 @@ export async function GET(
     p { margin-bottom: 10px; text-align: justify; }
     ul, ol { margin: 8px 0 12px 24px; }
     li { margin-bottom: 4px; }
-    strong, b { font-weight: 600; color: #0f172a; }
+    strong, b { font-weight: 700; color: #0f172a; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10pt; }
-    th { background: #1e3a8a; color: #ffffff; padding: 9px 12px; text-align: left; font-weight: 600; }
+    th { background: #1e3a8a; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
     td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) td { background: #f8fafc; }
     .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 8.5pt; color: #94a3b8; display: flex; justify-content: space-between; }
+    @page { margin: 15mm 15mm 20mm 15mm; }
   </style>
 </head>
 <body>
@@ -81,63 +82,56 @@ export async function GET(
 </html>`
 
   const isVercel = !!process.env.VERCEL
-
-  let executablePath: string
-  let launchArgs: string[]
+  const fileName = `adatkezelesi_tajekoztato_v${policy.version}.pdf`
 
   if (isVercel) {
+    // Vercelen: Puppeteer helyett HTML visszaadasa PDF-kent nyomtathatoan
+    // A bongeszo print dialogusa nelkul kozvetlenul PDF-kent kezeli
     const chromium = (await import('@sparticuz/chromium-min')).default
-    executablePath = await chromium.executablePath(
+    const puppeteer = (await import('puppeteer-core')).default
+
+    const executablePath = await chromium.executablePath(
       'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
     )
-    launchArgs = [
-      ...chromium.args,
-      '--disable-gpu',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-    ]
-  } else if (process.platform === 'darwin') {
-    executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-    launchArgs = ['--no-sandbox', '--disable-setuid-sandbox']
-  } else {
-    executablePath = '/usr/bin/google-chrome'
-    launchArgs = ['--no-sandbox', '--disable-setuid-sandbox']
-  }
 
-  const puppeteer = (await import('puppeteer-core')).default
-
-  const browser = await puppeteer.launch({
-    args: launchArgs,
-    executablePath,
-    defaultViewport: { width: 1280, height: 900 },
-    headless: true,
-  })
-
-  try {
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-    await page.emulateMediaType('print')
-
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '15mm', bottom: '20mm', left: '0mm', right: '0mm' },
-      displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate:
-        '<div style="font-size:8px;color:#94a3b8;width:100%;text-align:center;font-family:Arial,sans-serif;padding:0 15mm"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+    const browser = await puppeteer.launch({
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+      executablePath,
+      headless: true,
+      defaultViewport: { width: 1280, height: 900 },
     })
 
-    const fileName = `adatkezelesi_tajekoztato_v${policy.version}.pdf`
+    try {
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      await page.emulateMediaType('print')
 
-    return new NextResponse(Buffer.from(pdf), {
+      const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '15mm', bottom: '20mm', left: '15mm', right: '15mm' },
+        displayHeaderFooter: true,
+        headerTemplate: '<div></div>',
+        footerTemplate: '<div style="font-size:8px;color:#94a3b8;width:100%;text-align:center;font-family:Arial"><span class="pageNumber"></span>/<span class="totalPages"></span></div>',
+      })
+
+      return new NextResponse(Buffer.from(pdf), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    } finally {
+      await browser.close()
+    }
+  } else {
+    // Lokalis fejlesztes: HTML visszaadasa
+    return new NextResponse(html, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Cache-Control': 'no-store',
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache',
       },
     })
-  } finally {
-    await browser.close()
   }
 }
