@@ -7,18 +7,29 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // Service role kliens - szükséges mert az iframe nem adja át a session cookie-t
-  // Az oldal maga (preview page) védett marad a middleware által
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const { data: policy } = await supabase
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing Supabase env vars:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseServiceKey,
+    });
+    return new NextResponse('Server configuration error', { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data: policy, error } = await supabase
     .from('policies')
     .select('content_html, version, updated_at')
     .eq('id', id)
     .single();
+
+  if (error) {
+    console.error('Supabase error:', error);
+    return new NextResponse('Database error: ' + error.message, { status: 500 });
+  }
 
   if (!policy) {
     return new NextResponse('Not found', { status: 404 });
