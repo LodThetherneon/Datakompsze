@@ -1,3 +1,16 @@
-// Ez a fajl torolheto - a middleware.ts vette at a szerepet.
-// A Next.js csak a src/middleware.ts fajlt ismeri el middleware-kent.
-export {}
+import { type NextRequest } from 'next/server'
+import { updateSession } from '@/utils/supabase/middleware'
+
+export async function proxy(request: NextRequest) {
+  // API route-okat átengedjük auth redirect nélkül
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return
+  }
+  return await updateSession(request)
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
