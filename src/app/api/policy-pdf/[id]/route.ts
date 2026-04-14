@@ -1,4 +1,3 @@
-import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 
@@ -10,10 +9,8 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Service role kliens - nincs auth ellenőrzés,
+  // hogy new tab-ban közvetlenül megnyitható legyen
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -59,7 +56,6 @@ export async function GET(
     td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) td { background: #f8fafc; }
     .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 8.5pt; color: #94a3b8; display: flex; justify-content: space-between; }
-    /* Print gomb - csak képernyőn látszik */
     .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1e3a8a; color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; font-family: Arial, sans-serif; font-size: 10pt; z-index: 9999; }
     .print-bar button { background: #fff; color: #1e3a8a; border: none; padding: 6px 18px; border-radius: 6px; font-weight: 700; font-size: 10pt; cursor: pointer; }
     .print-bar button:hover { background: #e0e7ff; }

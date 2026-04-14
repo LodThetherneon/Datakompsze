@@ -1,14 +1,20 @@
-import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const { data: policy } = await supabase
+  // Service role kliens kell, mert iframe kontextusban
+  // a user session cookie nem érhető el
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: policy } = await serviceClient
     .from('policies')
     .select('content_html, version, updated_at')
     .eq('id', id)
