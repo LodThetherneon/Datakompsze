@@ -22,7 +22,7 @@ export async function GET(
 
   const { data: policy, error } = await supabase
     .from('policies')
-    .select('content_html, version, updated_at')
+    .select('content_html, version')
     .eq('id', id)
     .single();
 
@@ -35,9 +35,6 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const updatedDate = policy.updated_at
-    ? new Date(policy.updated_at).toLocaleDateString('hu-HU')
-    : new Date().toLocaleDateString('hu-HU');
   const generatedDate = new Date().toLocaleDateString('hu-HU');
   const docId = id.slice(0, 8).toUpperCase();
 
@@ -77,7 +74,7 @@ export async function GET(
   <div class="page-wrapper">
     <div class="header">
       <div class="header-brand">DataKomp</div>
-      <div class="header-meta">Verzio: v${policy.version}<br>Datum: ${updatedDate}<br>Dokumentum ID: ${docId}</div>
+      <div class="header-meta">Verzio: v${policy.version}<br>Datum: ${generatedDate}<br>Dokumentum ID: ${docId}</div>
     </div>
     <div class="doc-title">Adatkezelesi Tajekoztato</div>
     <div class="doc-subtitle">Halyos verzio - v${policy.version}</div>
