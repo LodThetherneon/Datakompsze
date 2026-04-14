@@ -24,8 +24,10 @@ export async function GET(
   let launchArgs: string[]
 
   if (isVercel) {
-    const chromium = (await import('@sparticuz/chromium')).default
-    executablePath = await chromium.executablePath()
+    const chromium = (await import('@sparticuz/chromium-min')).default
+    executablePath = await chromium.executablePath(
+      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+    )
     launchArgs = [
       ...chromium.args,
       '--disable-dev-shm-usage',
