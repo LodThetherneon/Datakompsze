@@ -18,29 +18,32 @@ export async function GET(
 
   if (!policy) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const chromium = (await import('@sparticuz/chromium')).default
-  const puppeteer = (await import('puppeteer-core')).default
-
   const isVercel = !!process.env.VERCEL
 
   let executablePath: string
-  if (isVercel) {
-    executablePath = await chromium.executablePath()
-  } else if (process.platform === 'darwin') {
-    executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-  } else {
-    executablePath = '/usr/bin/google-chrome'
-  }
+  let launchArgs: string[]
 
-  const browser = await puppeteer.launch({
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
+  if (isVercel) {
+    const chromium = (await import('@sparticuz/chromium')).default
+    executablePath = await chromium.executablePath()
+    launchArgs = [
+      ...chromium.args,
       '--disable-dev-shm-usage',
-      '--disable-gpu',
       '--single-process',
       '--no-zygote',
-    ],
+    ]
+  } else if (process.platform === 'darwin') {
+    executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    launchArgs = ['--no-sandbox', '--disable-setuid-sandbox']
+  } else {
+    executablePath = '/usr/bin/google-chrome'
+    launchArgs = ['--no-sandbox', '--disable-setuid-sandbox']
+  }
+
+  const puppeteer = (await import('puppeteer-core')).default
+
+  const browser = await puppeteer.launch({
+    args: launchArgs,
     executablePath,
     defaultViewport: { width: 1280, height: 900 },
     headless: true,
