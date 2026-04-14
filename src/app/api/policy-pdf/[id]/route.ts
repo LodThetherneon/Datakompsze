@@ -25,13 +25,10 @@ export async function GET(
 
   if (isVercel) {
     const chromium = (await import('@sparticuz/chromium')).default
+    chromium.setHeadlessMode = true
+    chromium.setGraphicsMode = false
     executablePath = await chromium.executablePath()
-    launchArgs = [
-      ...chromium.args,
-      '--disable-dev-shm-usage',
-      '--single-process',
-      '--no-zygote',
-    ]
+    launchArgs = chromium.args
   } else if (process.platform === 'darwin') {
     executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
     launchArgs = ['--no-sandbox', '--disable-setuid-sandbox']
