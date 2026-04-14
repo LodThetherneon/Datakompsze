@@ -4,7 +4,12 @@
       "maxDuration": 300
     },
     "src/app/api/policy-pdf/[id]/route.ts": {
+<<<<<<< HEAD
       "maxDuration": 60
+=======
+      "maxDuration": 60,
+      "memory": 3009
+>>>>>>> a2a28e7818cbc1e7d8795b1bbf55ec5a66497f8a
     }
   }
 }
