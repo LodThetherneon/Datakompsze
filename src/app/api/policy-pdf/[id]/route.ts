@@ -3,10 +3,6 @@ import { NextResponse } from 'next/server'
 
 export const maxDuration = 60
 
-// v133 chromium pack — v131 brotli bin path bug-ot javítja Vercelen
-const CHROMIUM_URL =
-  'https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar'
-
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -22,14 +18,14 @@ export async function GET(
 
   if (!policy) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const chromium = (await import('@sparticuz/chromium-min')).default
+  const chromium = (await import('@sparticuz/chromium')).default
   const puppeteer = (await import('puppeteer-core')).default
 
   const isVercel = !!process.env.VERCEL
 
   let executablePath: string
   if (isVercel) {
-    executablePath = await chromium.executablePath(CHROMIUM_URL)
+    executablePath = await chromium.executablePath()
   } else if (process.platform === 'darwin') {
     executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
   } else {
