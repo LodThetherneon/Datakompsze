@@ -2,10 +2,6 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 
 export async function proxy(request: NextRequest) {
-  // API route-okat átengedjük auth redirect nélkül
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    return
-  }
   return await updateSession(request)
 }
 
