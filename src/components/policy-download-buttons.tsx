@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from 'lucide-react'
+import { Download, Printer } from 'lucide-react'
 
 interface Props {
   policyId: string
@@ -8,15 +8,18 @@ interface Props {
 }
 
 export function PolicyDownloadButtons({ policyId, version }: Props) {
+  function openPrintPage() {
+    window.open(`/policies/${policyId}/print`, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <a
-        href={`/api/policy-pdf/${policyId}`}
-        download={`adatkezelesi_tajekoztato_v${version}.pdf`}
+      <button
+        onClick={openPrintPage}
         className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[12px] font-bold text-red-700 transition-colors"
       >
-        <Download size={13} /> PDF
-      </a>
+        <Printer size={13} /> PDF
+      </button>
       <a
         href={`/api/policy-docx/${policyId}`}
         download={`adatkezelesi_tajekoztato_v${version}.docx`}
