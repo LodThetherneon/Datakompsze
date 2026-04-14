@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 
-export const maxDuration = 60
+export const maxDuration = 30
 
 export async function GET(
   _req: Request,
@@ -10,12 +10,10 @@ export async function GET(
 ) {
   const { id } = await params
 
-  // Auth check
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Service role klienssel olvassuk az adatot
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -39,7 +37,7 @@ export async function GET(
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Adatkezelesi Tajekoztato v${policy.version}</title>
+  <title>Adatkezelési Tájékoztató v${policy.version}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a2e; background: #fff; }
@@ -61,77 +59,43 @@ export async function GET(
     td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) td { background: #f8fafc; }
     .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 8.5pt; color: #94a3b8; display: flex; justify-content: space-between; }
-    @page { margin: 15mm 15mm 20mm 15mm; }
+    /* Print gomb - csak képernyőn látszik */
+    .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1e3a8a; color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; font-family: Arial, sans-serif; font-size: 10pt; z-index: 9999; }
+    .print-bar button { background: #fff; color: #1e3a8a; border: none; padding: 6px 18px; border-radius: 6px; font-weight: 700; font-size: 10pt; cursor: pointer; }
+    .print-bar button:hover { background: #e0e7ff; }
+    body { padding-top: 50px; }
+    @media print {
+      .print-bar { display: none !important; }
+      body { padding-top: 0; }
+      @page { margin: 15mm 15mm 20mm 15mm; }
+    }
   </style>
 </head>
 <body>
+  <div class="print-bar">
+    <span>Adatkezelési Tájékoztató v${policy.version} &mdash; Mentés PDF-ként: Nyomtatás &rarr; Mentés PDF-ként</span>
+    <button onclick="window.print()">&#128438; Nyomtatás / PDF mentés</button>
+  </div>
   <div class="page-wrapper">
     <div class="header">
       <div class="header-brand">DataKomp</div>
-      <div class="header-meta">Verzio: v${policy.version}<br>Datum: ${updatedDate}<br>ID: ${docId}</div>
+      <div class="header-meta">Verzió: v${policy.version}<br>Dátum: ${updatedDate}<br>ID: ${docId}</div>
     </div>
-    <div class="doc-title">Adatkezelesi Tajekoztato</div>
-    <div class="doc-subtitle">Halyos verzio - v${policy.version}</div>
+    <div class="doc-title">Adatkezelési Tájékoztató</div>
+    <div class="doc-subtitle">Hatályos verzió &mdash; v${policy.version}</div>
     ${policy.content_html}
     <div class="footer">
-      <span>DataKomp - Adatkezelesi Tajekoztato v${policy.version}</span>
-      <span>Generalva: ${generatedDate}</span>
+      <span>DataKomp &mdash; Adatkezelési Tájékoztató v${policy.version}</span>
+      <span>Generálva: ${generatedDate}</span>
     </div>
   </div>
 </body>
 </html>`
 
-  const isVercel = !!process.env.VERCEL
-  const fileName = `adatkezelesi_tajekoztato_v${policy.version}.pdf`
-
-  if (isVercel) {
-    // Vercelen: Puppeteer helyett HTML visszaadasa PDF-kent nyomtathatoan
-    // A bongeszo print dialogusa nelkul kozvetlenul PDF-kent kezeli
-    const chromium = (await import('@sparticuz/chromium-min')).default
-    const puppeteer = (await import('puppeteer-core')).default
-
-    const executablePath = await chromium.executablePath(
-      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
-    )
-
-    const browser = await puppeteer.launch({
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
-      executablePath,
-      headless: true,
-      defaultViewport: { width: 1280, height: 900 },
-    })
-
-    try {
-      const page = await browser.newPage()
-      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
-      await page.emulateMediaType('print')
-
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '15mm', bottom: '20mm', left: '15mm', right: '15mm' },
-        displayHeaderFooter: true,
-        headerTemplate: '<div></div>',
-        footerTemplate: '<div style="font-size:8px;color:#94a3b8;width:100%;text-align:center;font-family:Arial"><span class="pageNumber"></span>/<span class="totalPages"></span></div>',
-      })
-
-      return new NextResponse(Buffer.from(pdf), {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-          'Cache-Control': 'no-store',
-        },
-      })
-    } finally {
-      await browser.close()
-    }
-  } else {
-    // Lokalis fejlesztes: HTML visszaadasa
-    return new NextResponse(html, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
-    })
-  }
+  return new NextResponse(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  })
 }

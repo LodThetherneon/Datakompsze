@@ -9,7 +9,7 @@ interface Props {
 
 export function PolicyDownloadButtons({ policyId, version }: Props) {
   function openPrintPage() {
-    window.open(`/policies/${policyId}/print`, '_blank', 'noopener,noreferrer')
+    window.open(`/api/policy-pdf/${policyId}`, '_blank', 'noopener,noreferrer')
   }
 
   return (
