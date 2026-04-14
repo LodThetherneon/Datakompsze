@@ -24,10 +24,12 @@ export async function GET(
   let launchArgs: string[]
 
   if (isVercel) {
-    const chromium = (await import('@sparticuz/chromium')).default
+    const chromium = (await import('@sparticuz/chromium-min')).default
     chromium.setHeadlessMode = true
     chromium.setGraphicsMode = false
-    executablePath = await chromium.executablePath()
+    executablePath = await chromium.executablePath(
+      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+    )
     launchArgs = chromium.args
   } else if (process.platform === 'darwin') {
     executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
