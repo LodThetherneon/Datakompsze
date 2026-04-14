@@ -10,21 +10,27 @@ export async function GET(
 
   const { data: policy } = await supabase
     .from('policies')
-    .select('*')
+    .select('version')
     .eq('id', id)
     .single()
 
   if (!policy) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   let browser
-
   const isVercel = !!process.env.VERCEL
 
   if (isVercel) {
     const chromium = (await import('@sparticuz/chromium')).default
     const puppeteer = (await import('puppeteer-core')).default
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+      ],
       executablePath: await chromium.executablePath(),
       headless: true,
     })
@@ -36,23 +42,42 @@ export async function GET(
     })
   }
 
-  const page = await browser.newPage()
-  await page.setContent(policy.content_html, { waitUntil: 'networkidle0' })
+  try {
+    const page = await browser.newPage()
 
-  const pdf = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
-  })
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (isVercel ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-  await browser.close()
+    await page.goto(`${baseUrl}/api/policies/${id}`, {
+      waitUntil: 'networkidle0',
+      timeout: 30000,
+    })
 
-  const fileName = `adatkezelesi_tajekoztato_v${policy.version}.pdf`
+    await page.emulateMediaType('print')
 
-  return new NextResponse(Buffer.from(pdf), {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
-    },
-  })
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
+      displayHeaderFooter: true,
+      headerTemplate: '<div></div>',
+      footerTemplate: `
+        <div style="font-size:9px; color:#888; width:100%; text-align:center; padding:0 15mm;">
+          <span class="pageNumber"></span> / <span class="totalPages"></span>
+        </div>`,
+    })
+
+    const fileName = `adatkezelesi_tajekoztato_v${policy.version}.pdf`
+
+    return new NextResponse(Buffer.from(pdf), {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Cache-Control': 'no-store',
+      },
+    })
+  } finally {
+    await browser.close()
+  }
 }

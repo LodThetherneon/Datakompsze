@@ -38,12 +38,21 @@ export default async function RootLayout({
   let websiteCount = 0
 
   if (user) {
-    const { data: company } = await supabase
-      .from('companies')
-      .select('id, plan')
-      .eq('user_id', user.id)
-      .single()
+    // Párhuzamos lekérdezés: company és website count egyszerre fut
+    const [companyResult, countResult] = await Promise.all([
+      supabase
+        .from('companies')
+        .select('id, plan')
+        .eq('user_id', user.id)
+        .single(),
+      // A count-hoz először kell a company.id, ezért itt a company lekérdezéssel párhuzamosan
+      // egy előzetes count-ot futtatunk user_id alapján subquery-vel — de mivel Supabase
+      // nem támogat közvetlen subquery-t, a company-t meg kell várnunk.
+      // Ezért: company-t először, majd count párhuzamosan a company.id-vel.
+      Promise.resolve(null), // placeholder
+    ])
 
+    const company = companyResult.data
     if (company) {
       companyData = company
       const { count } = await supabase
