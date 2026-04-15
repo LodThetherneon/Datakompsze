@@ -124,13 +124,37 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
   return result
 }
 
-// A4 belső szélesség (margók nélkül): 21cm - 2*1.27cm = 18.46cm
-// EMU: 1cm = 360000, tehát 18.46cm = 6645600 EMU
-// px: 1px = 9525 EMU → 6645600 / 9525 ≈ 697px szélesség DOCX-ban
-const DOCX_WIDTH_PX  = 697   // belső szélesség px-ben a DOCX-ban
-const ORIG_IMG_W     = 900   // szechenyi-bg.png szélessége
-const HEADER_H_ORIG  = 165   // fejléc sáv px a 900px-es képen
-const FOOTER_H_ORIG  = 114   // lábléc sáv px a 900px-es képen
+const DOCX_WIDTH_PX = 697
+const ORIG_IMG_W    = 900
+const HEADER_H_ORIG = 165
+const FOOTER_H_ORIG = 114
+
+/**
+ * Betölti a szechenyi-bg.png képet.
+ * 1. fs.readFileSync – lokális fejlesztésben (gyors, megbízható)
+ * 2. fetch fallback  – Vercel és egyéb hosted környezetekben
+ */
+async function loadSzechenyiBg(): Promise<Buffer> {
+  const filePath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
+
+  // 1. fs próba – lokálban mindig működik
+  try {
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath)
+    }
+  } catch {
+    // fs nem elérhető → fetch fallback
+  }
+
+  // 2. fetch fallback – Vercel / hosting
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+  const res = await fetch(`${baseUrl}/szechenyi-bg.png`)
+  if (!res.ok) throw new Error(`Kép betöltés sikertelen: ${res.status}`)
+  return Buffer.from(await res.arrayBuffer())
+}
 
 export async function GET(
   _req: Request,
@@ -149,28 +173,25 @@ export async function GET(
 
   const children = htmlToDocxChildren(policy.content_html)
 
-  // ─── Fejléc / lábléc kép előkészítése sharp-pal ────────────────────────
+  // ─── Fejléc / lábléc kép előkészítése ────────────────────────────────────
   let headerSection: Header
   let footerSection: Footer
 
-  const imgPath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
+  try {
+    const imgBuffer = await loadSzechenyiBg()
 
-  if (fs.existsSync(imgPath)) {
-    // Fejléc: felső 165px kivágása, majd átméretezés DOCX szélességre
-    const headerImgBuf = await sharp(imgPath)
+    const headerImgBuf = await sharp(imgBuffer)
       .extract({ left: 0, top: 0, width: ORIG_IMG_W, height: HEADER_H_ORIG })
       .resize({ width: DOCX_WIDTH_PX })
       .png()
       .toBuffer()
 
-    // Lábléc: alsó 114px kivágása
-    const footerImgBuf = await sharp(imgPath)
+    const footerImgBuf = await sharp(imgBuffer)
       .extract({ left: 0, top: 1273 - FOOTER_H_ORIG, width: ORIG_IMG_W, height: FOOTER_H_ORIG })
       .resize({ width: DOCX_WIDTH_PX })
       .png()
       .toBuffer()
 
-    // Arányos magasság kiszámítása az átméretezett képhez
     const headerScaledH = Math.round((HEADER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
     const footerScaledH = Math.round((FOOTER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
 
@@ -203,8 +224,9 @@ export async function GET(
         }),
       ],
     })
-  } else {
-    // Fallback szöveges fejléc/lábléc ha nincs kép
+  } catch (err) {
+    console.error('Széchenyi háttérkép betöltése sikertelen, szöveges fallback:', err)
+
     headerSection = new Header({
       children: [
         new Paragraph({
