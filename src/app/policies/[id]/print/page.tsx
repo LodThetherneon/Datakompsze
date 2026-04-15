@@ -75,12 +75,12 @@ export default async function PolicyPrintPage({ params }: { params: Promise<{ id
             ID: {docId}
           </div>
         </div>
-        <div className="doc-title">Adatkezel\u00e9si T\u00e1j\u00e9koztat\u00f3</div>
-        <div className="doc-sub">Hat\u00e1lyos verzi\u00f3 \u2013 v{policy.version}</div>
+        <div className="doc-title">Adatkezelési Tájékoztató</div>
+        <div className="doc-sub">Hatályos verzió – v{policy.version}</div>
         <div dangerouslySetInnerHTML={{ __html: policy.content_html }} />
         <div className="print-footer">
-          <span>DataKomp \u2013 Adatkezel\u00e9si T\u00e1j\u00e9koztat\u00f3 v{policy.version}</span>
-          <span>Gener\u00e1lva: {new Date().toLocaleDateString('hu-HU')}</span>
+          <span>DataKomp \u2013 Adatkezelési Tájékoztató v{policy.version}</span>
+          <span>DataKompsze: {new Date().toLocaleDateString('hu-HU')}</span>
         </div>
       </div>
       <script dangerouslySetInnerHTML={{ __html: `
