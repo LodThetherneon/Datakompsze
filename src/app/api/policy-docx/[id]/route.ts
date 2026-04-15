@@ -1,19 +1,75 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import {
-  Document, Packer, Paragraph, TextRun,
-  BorderStyle, AlignmentType,
-  Table, TableRow, TableCell, WidthType, ShadingType,
-  Header, Footer, ImageRun,
-} from 'docx'
 import { parse } from 'node-html-parser'
+import PizZip from 'pizzip'
+import Docxtemplater from 'docxtemplater'
 import fs from 'fs'
 import path from 'path'
-import sharp from 'sharp'
 
-function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
+// ─── HTML → DOCX XML konverter ────────────────────────────────────────────────
+// Az Open XML namespace-ek
+const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+
+function esc(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function makeRun(text: string, opts: { bold?: boolean; size?: number; color?: string; font?: string } = {}): string {
+  const { bold = false, size = 22, color = '000000', font = 'Arial' } = opts
+  return `<w:r>
+    <w:rPr>
+      <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>
+      ${bold ? '<w:b/>' : ''}
+      <w:sz w:val="${size}"/>
+      <w:szCs w:val="${size}"/>
+      <w:color w:val="${color}"/>
+    </w:rPr>
+    <w:t xml:space="preserve">${esc(text)}</w:t>
+  </w:r>`
+}
+
+function makePara(
+  runs: string,
+  opts: { align?: string; spaceBefore?: number; spaceAfter?: number; indentLeft?: number } = {}
+): string {
+  const { align = 'both', spaceBefore = 0, spaceAfter = 80, indentLeft = 0 } = opts
+  return `<w:p>
+    <w:pPr>
+      <w:jc w:val="${align}"/>
+      <w:spacing w:before="${spaceBefore}" w:after="${spaceAfter}"/>
+      ${indentLeft ? `<w:ind w:left="${indentLeft}"/>` : ''}
+    </w:pPr>
+    ${runs}
+  </w:p>`
+}
+
+function makeTableCell(text: string, isHeader: boolean, width: number): string {
+  const shading = isHeader
+    ? '<w:shd w:val="clear" w:color="auto" w:fill="1a3a6b"/>'
+    : ''
+  const textColor = isHeader ? 'ffffff' : '000000'
+  return `<w:tc>
+    <w:tcPr>
+      <w:tcW w:w="${width}" w:type="dxa"/>
+      ${shading}
+      <w:tcBorders>
+        <w:top w:val="single" w:sz="4" w:color="cccccc"/>
+        <w:left w:val="single" w:sz="4" w:color="cccccc"/>
+        <w:bottom w:val="single" w:sz="4" w:color="cccccc"/>
+        <w:right w:val="single" w:sz="4" w:color="cccccc"/>
+      </w:tcBorders>
+    </w:tcPr>
+    ${makePara(makeRun(text, { bold: isHeader, size: 18, color: textColor }), { spaceAfter: 40 })}
+  </w:tc>`
+}
+
+function htmlToOoxml(html: string): string {
   const root = parse(html)
-  const result: (Paragraph | Table)[] = []
+  let xml = ''
 
   const pageContents = root.querySelectorAll('.page-content')
   const nodes = pageContents.length > 0
@@ -29,133 +85,124 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
         const h1 = (node as any).querySelector('h1')
         const sub = (node as any).querySelector('.sub')
         if (h1) {
-          result.push(new Paragraph({
-            children: [new TextRun({ text: h1.text.trim(), bold: true, size: 32, font: 'Calibri', color: '0f172a' })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 100 },
-          }))
+          xml += makePara(makeRun(h1.text.trim(), { bold: true, size: 28, color: '0f172a' }), { align: 'center', spaceAfter: 100 })
         }
         if (sub) {
-          result.push(new Paragraph({
-            children: [new TextRun({ text: sub.text.trim(), bold: true, size: 26, font: 'Calibri', color: '0f172a' })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
-          }))
+          xml += makePara(makeRun(sub.text.trim(), { bold: true, size: 24, color: '0f172a' }), { align: 'center', spaceAfter: 300 })
         }
       }
       continue
     }
 
+    if (!tag) continue
+
     if (tag === 'h1') {
-      result.push(new Paragraph({
-        children: [new TextRun({ text: node.text.trim(), bold: true, size: 32, font: 'Calibri', color: '0f172a' })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-      }))
+      xml += makePara(makeRun(node.text.trim(), { bold: true, size: 28, color: '0f172a' }), { align: 'center', spaceAfter: 200 })
     } else if (tag === 'h2') {
-      result.push(new Paragraph({
-        children: [new TextRun({ text: node.text.trim(), bold: true, size: 22, font: 'Calibri', color: '1a1a1a' })],
-        spacing: { before: 280, after: 80 },
-      }))
+      xml += makePara(makeRun(node.text.trim(), { bold: true, size: 22, color: '1a1a1a' }), { spaceBefore: 280, spaceAfter: 80 })
     } else if (tag === 'h3') {
-      result.push(new Paragraph({
-        children: [new TextRun({ text: node.text.trim(), bold: true, italics: true, size: 22, font: 'Calibri', color: '1a1a1a' })],
-        spacing: { before: 160, after: 60 },
-      }))
+      xml += makePara(makeRun(node.text.trim(), { bold: true, size: 22, color: '1a1a1a' }), { spaceBefore: 160, spaceAfter: 60 })
     } else if (tag === 'p') {
       const text = node.text.trim()
       if (!text) continue
-      result.push(new Paragraph({
-        children: [new TextRun({ text, size: 22, font: 'Calibri' })],
-        spacing: { after: 80 },
-      }))
+      xml += makePara(makeRun(text, { size: 22 }), { spaceAfter: 80 })
     } else if (tag === 'ul' || tag === 'ol') {
       for (const li of (node as any).querySelectorAll('li')) {
-        result.push(new Paragraph({
-          children: [new TextRun({ text: `• ${li.text.trim()}`, size: 22, font: 'Calibri' })],
-          spacing: { after: 60 },
-          indent: { left: 400 },
-        }))
+        xml += makePara(makeRun(`• ${li.text.trim()}`, { size: 22 }), { spaceAfter: 60, indentLeft: 400 })
       }
     } else if (tag === 'table') {
-      const rows: TableRow[] = []
-
       const headerCells = (node as any).querySelectorAll('thead th')
+      const bodyRows = (node as any).querySelectorAll('tbody tr')
+      if (headerCells.length === 0 && bodyRows.length === 0) continue
+
+      const colCount = headerCells.length || (bodyRows[0]?.querySelectorAll('td').length ?? 1)
+      const colW = Math.floor(9000 / colCount)
+
+      let tableXml = `<w:tbl>
+        <w:tblPr>
+          <w:tblW w:w="9000" w:type="dxa"/>
+          <w:tblBorders>
+            <w:top w:val="single" w:sz="4" w:color="cccccc"/>
+            <w:left w:val="single" w:sz="4" w:color="cccccc"/>
+            <w:bottom w:val="single" w:sz="4" w:color="cccccc"/>
+            <w:right w:val="single" w:sz="4" w:color="cccccc"/>
+            <w:insideH w:val="single" w:sz="4" w:color="cccccc"/>
+            <w:insideV w:val="single" w:sz="4" w:color="cccccc"/>
+          </w:tblBorders>
+        </w:tblPr>`
+
       if (headerCells.length > 0) {
-        rows.push(new TableRow({
-          children: headerCells.map((th: any) =>
-            new TableCell({
-              children: [new Paragraph({
-                children: [new TextRun({ text: th.text.trim(), bold: true, size: 18, font: 'Calibri', color: 'ffffff' })],
-              })],
-              shading: { type: ShadingType.SOLID, color: '1a3a6b' },
-              width: { size: Math.floor(9000 / headerCells.length), type: WidthType.DXA },
-            })
-          ),
-          tableHeader: true,
-        }))
+        tableXml += `<w:tr><w:trPr><w:tblHeader/></w:trPr>`
+        for (const th of headerCells) {
+          tableXml += makeTableCell(th.text.trim(), true, colW)
+        }
+        tableXml += `</w:tr>`
       }
 
-      for (const tr of (node as any).querySelectorAll('tbody tr')) {
+      for (const tr of bodyRows) {
         const cells = tr.querySelectorAll('td')
         if (cells.length === 0) continue
-        rows.push(new TableRow({
-          children: cells.map((td: any) =>
-            new TableCell({
-              children: [new Paragraph({
-                children: [new TextRun({ text: td.text.trim(), size: 18, font: 'Calibri' })],
-              })],
-              width: { size: Math.floor(9000 / cells.length), type: WidthType.DXA },
-            })
-          ),
-        }))
+        tableXml += `<w:tr>`
+        for (const td of cells) {
+          tableXml += makeTableCell(td.text.trim(), false, Math.floor(9000 / cells.length))
+        }
+        tableXml += `</w:tr>`
       }
 
-      if (rows.length > 0) {
-        result.push(new Table({
-          rows,
-          width: { size: 9000, type: WidthType.DXA },
-        }))
-        result.push(new Paragraph({ text: '', spacing: { after: 200 } }))
-      }
+      tableXml += `</w:tbl>`
+      xml += tableXml
+      xml += makePara('', { spaceAfter: 200 })
     }
   }
 
-  return result
+  return xml
 }
 
-const DOCX_WIDTH_PX = 697
-const ORIG_IMG_W    = 900
-const HEADER_H_ORIG = 165
-const FOOTER_H_ORIG = 114
+// ─── Template betöltése ────────────────────────────────────────────────────────
+async function loadTemplate(): Promise<Buffer> {
+  const filePath = path.join(process.cwd(), 'public', 'szechenyi-bg-template.docx')
 
-/**
- * Betölti a szechenyi-bg.png képet.
- * 1. fs.readFileSync – lokális fejlesztésben (gyors, megbízható)
- * 2. fetch fallback  – Vercel és egyéb hosted környezetekben
- */
-async function loadSzechenyiBg(): Promise<Buffer> {
-  const filePath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
-
-  // 1. fs próba – lokálban mindig működik
   try {
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath)
     }
-  } catch {
-    // fs nem elérhető → fetch fallback
-  }
+  } catch { /* folytatás fetch-csel */ }
 
-  // 2. fetch fallback – Vercel / hosting
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-  const res = await fetch(`${baseUrl}/szechenyi-bg.png`)
-  if (!res.ok) throw new Error(`Kép betöltés sikertelen: ${res.status}`)
+  const res = await fetch(`${baseUrl}/szechenyi-bg-template.docx`)
+  if (!res.ok) throw new Error(`Template betöltés sikertelen: ${res.status}`)
   return Buffer.from(await res.arrayBuffer())
 }
 
+// ─── Fő document.xml csere ZIP-ben ────────────────────────────────────────────
+function buildDocumentXml(bodyXml: string, zip: PizZip): string {
+  // Az eredeti document.xml-ből kinyerjük a sectPr-t (oldalbeállítások, fejléc/lábléc hivatkozások)
+  const originalDocXml = zip.file('word/document.xml')!.asText()
+
+  // Kinyerjük az eredeti sectPr-t (tartalmazza a headerReference és footerReference elemeket)
+  const sectPrMatch = originalDocXml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/)
+  const sectPr = sectPrMatch ? sectPrMatch[0] : `<w:sectPr>
+    <w:pgSz w:w="11906" w:h="16838"/>
+    <w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="57" w:gutter="0"/>
+  </w:sectPr>`
+
+  // Kinyerjük az eredeti XML namespace deklarációkat
+  const nsMatch = originalDocXml.match(/<w:document[^>]*>/)
+  const nsDecl = nsMatch ? nsMatch[0] : '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+${nsDecl}
+  <w:body>
+    ${bodyXml}
+    ${sectPr}
+  </w:body>
+</w:document>`
+}
+
+// ─── GET handler ──────────────────────────────────────────────────────────────
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -171,99 +218,27 @@ export async function GET(
 
   if (!policy) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const children = htmlToDocxChildren(policy.content_html)
+  // 1. Template betöltése
+  const templateBuf = await loadTemplate()
 
-  // ─── Fejléc / lábléc kép előkészítése ────────────────────────────────────
-  let headerSection: Header
-  let footerSection: Footer
+  // 2. ZIP megnyitása
+  const zip = new PizZip(templateBuf)
 
-  try {
-    const imgBuffer = await loadSzechenyiBg()
+  // 3. HTML → OOXML konverzió
+  const bodyXml = htmlToOoxml(policy.content_html)
 
-    const headerImgBuf = await sharp(imgBuffer)
-      .extract({ left: 0, top: 0, width: ORIG_IMG_W, height: HEADER_H_ORIG })
-      .resize({ width: DOCX_WIDTH_PX })
-      .png()
-      .toBuffer()
+  // 4. Új document.xml összeállítása (megőrzi az eredeti fejléc/lábléc hivatkozásokat!)
+  const newDocXml = buildDocumentXml(bodyXml, zip)
 
-    const footerImgBuf = await sharp(imgBuffer)
-      .extract({ left: 0, top: 1273 - FOOTER_H_ORIG, width: ORIG_IMG_W, height: FOOTER_H_ORIG })
-      .resize({ width: DOCX_WIDTH_PX })
-      .png()
-      .toBuffer()
+  // 5. ZIP-be visszaírás
+  zip.file('word/document.xml', newDocXml)
 
-    const headerScaledH = Math.round((HEADER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
-    const footerScaledH = Math.round((FOOTER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
+  // 6. Kimenet generálása
+  const outputBuf = zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' })
 
-    headerSection = new Header({
-      children: [
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: headerImgBuf,
-              transformation: { width: DOCX_WIDTH_PX, height: headerScaledH },
-              type: 'png',
-            }),
-          ],
-          spacing: { before: 0, after: 0 },
-        }),
-      ],
-    })
-
-    footerSection = new Footer({
-      children: [
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: footerImgBuf,
-              transformation: { width: DOCX_WIDTH_PX, height: footerScaledH },
-              type: 'png',
-            }),
-          ],
-          spacing: { before: 0, after: 0 },
-        }),
-      ],
-    })
-  } catch (err) {
-    console.error('Széchenyi háttérkép betöltése sikertelen, szöveges fallback:', err)
-
-    headerSection = new Header({
-      children: [
-        new Paragraph({
-          children: [new TextRun({ text: 'SZÉCHENYI ISTVÁN EGYETEM', bold: true, size: 24, font: 'Calibri', color: '1a3a6b' })],
-          alignment: AlignmentType.CENTER,
-        }),
-      ],
-    })
-    footerSection = new Footer({
-      children: [
-        new Paragraph({
-          children: [new TextRun({ text: 'SZÉCHENYI ISTVÁN EGYETEM  |  9026 GYŐR, EGYETEM TÉR 1.  |  UNI.SZE.HU', size: 16, font: 'Calibri', color: '555555' })],
-          alignment: AlignmentType.CENTER,
-          border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'dddddd' } },
-        }),
-      ],
-    })
-  }
-
-  const doc = new Document({
-    sections: [{
-      properties: {
-        page: {
-          margin: { top: 1200, bottom: 1200, left: 1200, right: 1200 },
-        },
-      },
-      headers: { default: headerSection },
-      footers: { default: footerSection },
-      children,
-    }],
-  })
-
-  const uint8 = await Packer.toBuffer(doc)
-  const buffer = Buffer.from(uint8)
   const fileName = `adatkezelesi_tajekoztato_v${policy.version}.docx`
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(outputBuf), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="${fileName}"`,
