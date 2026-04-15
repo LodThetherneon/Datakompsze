@@ -3,12 +3,22 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { runScanner } from '@/lib/scanner'
+import fs from 'fs'
+import path from 'path'
 
+function getSzechenyiBg(): string {
+  try {
+    const imgPath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
+    if (fs.existsSync(imgPath)) {
+      return `data:image/png;base64,${fs.readFileSync(imgPath).toString('base64')}`
+    }
+  } catch {}
+  return ''
+}
 
 export async function addConnection(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
   const { data: companyFull } = await supabase
@@ -28,7 +38,6 @@ export async function addConnection(formData: FormData) {
 
   const { data: company } = await supabase
     .from('companies').select('id').eq('user_id', user.id).single()
-
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
   const mode = formData.get('mode') as 'link' | 'manual'
@@ -36,15 +45,12 @@ export async function addConnection(formData: FormData) {
   if (mode === 'link') {
     const rawUrl = formData.get('url') as string
     const cleanUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
-
     const { data: newSite, error } = await supabase
       .from('websites')
       .insert([{ company_id: company.id, url: cleanUrl, status: 'scanning' }])
       .select().single()
-
     if (error || !newSite) throw error
     runScanner(newSite.id, cleanUrl).catch(err => console.error('Scanner hiba:', err))
-
   } else if (mode === 'manual') {
     const name = formData.get('name') as string
     const { error } = await supabase.from('websites').insert([{
@@ -66,8 +72,8 @@ export async function addManualSystem(formData: FormData) {
     .from('companies').select('id').eq('user_id', user.id).single()
   if (!company) throw new Error("Nincs cégadat beállítva!")
 
-  const websiteId = (formData.get('websiteId') as string)?.trim() 
-   if (!websiteId) throw new Error("A forrás weboldal megadása kötelező!")
+  const websiteId = (formData.get('websiteId') as string)?.trim()
+  if (!websiteId) throw new Error("A forrás weboldal megadása kötelező!")
 
   const dataTypeCat       = (formData.get('dataTypeCategory') as string)?.trim()
   const collectedData     = (formData.get('collectedData')    as string)?.trim()
@@ -78,24 +84,22 @@ export async function addManualSystem(formData: FormData) {
   if (!collectedData)     throw new Error("A kezelt adat megadása kötelező!")
   if (!retentionUntilRaw) throw new Error("Az adatkezelés végének megadása kötelező!")
 
-  // Dátum validáció (timezone-safe)
   const parts = retentionUntilRaw.split('-').map(Number)
   if (parts.length !== 3 || parts.some(isNaN)) throw new Error("Érvénytelen dátum formátum!")
   const retentionDate = new Date(parts[0], parts[1] - 1, parts[2])
   if (isNaN(retentionDate.getTime())) throw new Error("Érvénytelen dátum!")
 
   const { error } = await supabase.from('systems').insert([{
-    company_id:      company.id,
-    website_id:      websiteId,
-    system_name:     dataTypeCat,
-    purpose:         dataTypeCat,
-    collected_data:  collectedData,
-    status:          'active',
-    source_type: (formData.get('sourceType') as string) || 'manual',
-    retention_until: retentionUntilRaw,
+    company_id:        company.id,
+    website_id:        websiteId,
+    system_name:       dataTypeCat,
+    purpose:           dataTypeCat,
+    collected_data:    collectedData,
+    status:            'active',
+    source_type:       (formData.get('sourceType') as string) || 'manual',
+    retention_until:   retentionUntilRaw,
     retention_display: retentionDisplay ?? null,
   }])
-
   if (error) throw error
 
   revalidatePath('/')
@@ -105,13 +109,10 @@ export async function addManualSystem(formData: FormData) {
 export async function deleteSystem(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
-
   const { data: sys } = await supabase
     .from('systems').select('website_id').eq('id', id).single()
-
   const { error } = await supabase.from('systems').delete().eq('id', id)
   if (error) throw error
-
   return { websiteId: sys?.website_id ?? null }
 }
 
@@ -163,22 +164,28 @@ export async function generatePolicy(formData: FormData) {
     newVersion = `${vParts[0]}.${parseInt(vParts[1] || '0') + 1}`
   }
 
-  // Generálás dátuma — Budapest timezone
   const generatedAt = new Date()
   const today = new Intl.DateTimeFormat('hu-HU', {
     year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Budapest'
   }).format(generatedAt)
 
-  const allSystems    = systems || []
-  const thirdParties  = allSystems.filter(s => s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap'))
-  const cookieSystems = thirdParties
-  const formSystems   = allSystems.filter(s => s.system_name?.includes('Webes űrlap'))
-  const manualSystems = allSystems.filter(s => s.source_type === 'manual' || s.source_type === 'process')
-
-  const dpoSection = company.dpo_name
-    ? `<p>Az adatkezelő adatvédelmi tisztviselőjének neve: <strong>${company.dpo_name}</strong><br>
-       E-mail: <a href="mailto:${company.dpo_email}">${company.dpo_email}</a></p>`
-    : `<p>Az adatkezelő nem nevezett ki adatvédelmi tisztviselőt (DPO), mivel erre jogszabályi kötelezettség jelenleg nem áll fenn.</p>`
+  const allSystems   = systems || []
+  const thirdParties = allSystems.filter((s: any) =>
+    s.source_type === 'scanned' && !s.system_name?.includes('Webes űrlap')
+  )
+  const cookieSystems = thirdParties.filter((s: any) => {
+    const n = (s.system_name || '').toLowerCase()
+    const p = (s.purpose    || '').toLowerCase()
+    return n.includes('analytics') || n.includes('tag')      || n.includes('pixel') ||
+           n.includes('cookie')    || n.includes('süti')     || n.includes('hotjar') ||
+           n.includes('facebook')  || n.includes('gtm')      || n.includes('clarity') ||
+           p.includes('süti')      || p.includes('cookie')   || p.includes('analitik') ||
+           p.includes('remarketing')
+  })
+  const formSystems   = allSystems.filter((s: any) => s.system_name?.includes('Webes űrlap'))
+  const manualSystems = allSystems.filter((s: any) => s.source_type === 'manual' || s.source_type === 'process')
+  const allRows       = [...manualSystems, ...formSystems, ...thirdParties]
+  const hasCookies    = cookieSystems.length > 0
 
   function legalBasis(s: any): string {
     const p = (s.purpose || '').toLowerCase()
@@ -193,12 +200,11 @@ export async function generatePolicy(formData: FormData) {
     return 'Hozzájárulás (GDPR 6. cikk (1) a))'
   }
 
-  // Timezone-safe megőrzési idő: YYYY-MM-DD → lokális dátum, nincs UTC shift
   function retentionPeriod(s: any): string {
     if ((s.source_type === 'manual' || s.source_type === 'process') && s.retention_until) {
       const raw = String(s.retention_until)
       const dateParts = raw.split('-').map(Number)
-      if (dateParts.length === 3 && dateParts.every(n => !isNaN(n))) {
+      if (dateParts.length === 3 && dateParts.every((n: number) => !isNaN(n))) {
         const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
         if (!isNaN(d.getTime())) {
           return new Intl.DateTimeFormat('hu-HU', {
@@ -208,164 +214,346 @@ export async function generatePolicy(formData: FormData) {
       }
     }
     const p = (s.purpose || '').toLowerCase()
-    if (p.includes('hírlevél') || p.includes('marketing'))           return 'Leiratkozásig'
-    if (p.includes('fizetés')  || p.includes('számlázás'))           return '8 év (számviteli törvény)'
-    if (p.includes('analitik') || p.includes('statisztik'))          return '26 hónap'
+    if (p.includes('hírlevél') || p.includes('marketing'))                          return 'Leiratkozásig'
+    if (p.includes('fizetés')  || p.includes('számlázás'))                          return '8 év (számviteli törvény)'
+    if (p.includes('analitik') || p.includes('statisztik'))                         return '26 hónap'
     if (p.includes('chat')     || p.includes('kapcsolat') || p.includes('üzenet')) return '1 év'
     if (p.includes('süti')     || p.includes('cookie')   || p.includes('remarketing')) return 'Süti lejártáig (max. 13 hónap)'
     return '5 év'
   }
 
-  const allRows = [...manualSystems, ...formSystems, ...thirdParties]
+  // ─── Lap konstansok ────────────────────────────────────────────────────────
+  const bg       = getSzechenyiBg()
+  const PAGE_W   = 900
+  const PAGE_H   = 1273
+  const HEADER_H = 165
+  const FOOTER_H = 114
+  const PAD_X    = 68
+  const PAD_Y    = 10
+  // Extra 60px puffer hogy ne csússzon szét fejléc és tábla laphatáron
+  const AVAIL    = PAGE_H - HEADER_H - FOOTER_H - PAD_Y * 2 - 60
 
-  const mainTableRows = allRows.length > 0
-    ? allRows.map(s => `
-      <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b">${s.system_name || '—'}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.collected_data || '—'}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.purpose || '—'}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${legalBasis(s)}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${retentionPeriod(s)}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="5" style="padding:12px;color:#94a3b8;text-align:center">Nem rögzítettek adatkezelési folyamatot.</td></tr>`
+  // ─── CSS ──────────────────────────────────────────────────────────────────
+  const css = `
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #c8c8c8; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }
+    .document  { width: ${PAGE_W}px; margin: 30px auto; }
+    .page {
+      position: relative; width: ${PAGE_W}px; height: ${PAGE_H}px;
+      background: #fff; overflow: hidden; margin-bottom: 20px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.20);
+    }
+    .bg-img {
+      position: absolute; top: 0; left: 0;
+      width: ${PAGE_W}px; height: ${PAGE_H}px;
+      object-fit: fill; z-index: 0; pointer-events: none;
+    }
+    .page-content {
+      position: absolute;
+      top: ${HEADER_H + PAD_Y}px;
+      left: ${PAD_X}px;
+      right: ${PAD_X}px;
+      bottom: ${FOOTER_H + PAD_Y}px;
+      overflow: hidden; z-index: 1;
+    }
+    p   { font-size: 12.5px; color: #1a1a1a; margin-bottom: 5px; line-height: 1.6; }
+    h2  { font-size: 12.5px; font-weight: 700; color: #1a1a1a; margin-top: 14px; margin-bottom: 4px; }
+    h3  { font-size: 12.5px; font-weight: 700; font-style: italic; color: #1a1a1a; margin-top: 8px; margin-bottom: 3px; }
+    a   { color: #1a3a6b; text-decoration: none; }
+    .doc-title       { text-align: center; margin-bottom: 14px; margin-top: 6px; }
+    .doc-title h1    { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #1a1a1a; }
+    .doc-title .sub  { display: inline-block; font-size: 13px; font-weight: 700; color: #1a1a1a; margin-top: 5px; border-bottom: 1.5px solid #1a1a1a; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 5px; font-size: 11px; }
+    th { background: #1a3a6b; color: #fff; padding: 5px 7px; text-align: left; font-weight: 700; border: 1px solid #1a3a6b; }
+    td { padding: 5px 7px; border: 1px solid #bbb; color: #1a1a1a; vertical-align: top; line-height: 1.4; }
+    tr:nth-child(even) td { background: #f4f6fa; }
+    .naih-table th { background: #555; border-color: #555; }
+    .page-footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: ${FOOTER_H}px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding-bottom: 10px;
+    }
+    .page-footer .footer-name {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #1a1a1a;
+      text-transform: uppercase;
+    }
+    .page-footer .footer-address {
+      font-size: 9.5px;
+      color: #1a1a1a;
+      letter-spacing: 0.03em;
+    }
+    .page-footer .footer-contacts {
+      font-size: 9.5px;
+      color: #1a1a1a;
+      letter-spacing: 0.03em;
+    }
+    .page-footer .footer-sep {
+      color: #1a3a6b;
+      margin: 0 5px;
+    }
+  `
+  // ─── Segédfüggvények ───────────────────────────────────────────────────────
+  const makePage = (inner: string) => `
+  <div class="page">
+    <img class="bg-img" src="${bg}" alt="" />
+    <div class="page-content">${inner}</div>
+    <div class="page-footer">
+      <div class="footer-name">Széchenyi István Egyetem – University of Győr</div>
+      <div class="footer-address">9026 Győr, Egyetem tér 1.</div>
+      <div class="footer-contacts">
+        uni.sze.hu
+        <span class="footer-sep">|</span>
+        <a href="mailto:sze@sze.hu" style="color:#1a1a1a;text-decoration:none;">sze@sze.hu</a>
+        <span class="footer-sep">|</span>
+        +36 96 503 400
+      </div>
+    </div>
+  </div>`
 
-  const thirdPartyRows = thirdParties.length > 0
-    ? thirdParties.map(s => `
-      <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b">${s.system_name}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.purpose || '—'}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.collected_data || '—'}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="3" style="padding:12px;color:#94a3b8;text-align:center">Nem azonosítottak harmadik fél adatfeldolgozókat.</td></tr>`
+  type Atom = { html: string; estH: number }
 
-  const cookieSection = cookieSystems.length > 0 ? `
-    <h2>5. Sütik (Cookie-k) használata</h2>
-    <p>A weboldal sütiket használ. Az alábbi sütiket alkalmazzuk:</p>
-    <table>
+  const H2_H    = 32
+  const H3_H    = 24
+  const P_H     = 22
+  const THEAD_H = 30
+
+  function estimateCellLines(text: string, colWidthChars = 30): number {
+    if (!text) return 1
+    const plain = text.replace(/<[^>]+>/g, '')
+    return Math.max(1, Math.ceil(plain.length / colWidthChars))
+  }
+
+  function estimateRowHeight(cells: string[]): number {
+    const maxLines = Math.max(...cells.map(c => estimateCellLines(c, 30)))
+    return 10 + maxLines * 16
+  }
+
+  function trRow(cells: string[], even = false): string {
+    const bg = even ? 'background:#f4f6fa;' : ''
+    return `<tr>${cells.map(c =>
+      `<td style="padding:5px 7px;border:1px solid #bbb;color:#1a1a1a;vertical-align:top;line-height:1.4;${bg}">${c}</td>`
+    ).join('')}</tr>`
+  }
+
+  function thRow(cells: string[]): string {
+    return `<thead><tr>${cells.map(c =>
+      `<th style="background:#1a3a6b;color:#fff;padding:5px 7px;text-align:left;font-weight:700;border:1px solid #1a3a6b;">${c}</th>`
+    ).join('')}</tr></thead>`
+  }
+
+  function buildTable(headers: string[], rowCells: string[][]): { html: string; estH: number } {
+    const rowsH = rowCells.reduce((sum, cells) => sum + estimateRowHeight(cells), 0)
+    const estH  = THEAD_H + rowsH + 16
+    const html  = `
+      <table>
+        ${thRow(headers)}
+        <tbody>
+          ${rowCells.map((cells, i) => trRow(cells, i % 2 === 1)).join('')}
+        </tbody>
+      </table>`
+    return { html, estH }
+  }
+
+  const atoms: Atom[] = []
+
+  function addAtom(html: string, estH: number) {
+    atoms.push({ html, estH })
+  }
+
+  // ─── 1. Cím blokk ──────────────────────────────────────────────────────────
+  addAtom(`
+    <div class="doc-title">
+      <h1>Adatkezelési tájékoztató</h1>
+      <div class="sub">${siteName} vonatkozására</div>
+    </div>
+    <p>Tájékoztatjuk, hogy a Széchenyi István Egyetem kiemelt jelentőséget tulajdonít a személyes adatok védelmének
+    és minden körülmények között biztosítani kívánja az egyének önrendelkezési jogát.</p>
+    <p>A Széchenyi István Egyetem bármely – az adatkezelés során tudomására jutott – személyes adatot az
+    információs önrendelkezési jogról és az információszabadságról szóló 2011. évi CXII. törvény és AZ EURÓPAI
+    PARLAMENT ÉS A TANÁCS (EU) 2016/679 RENDELETE (2016. április 27.) rendelkezései szerint kezel.</p>
+  `, 90)
+
+  // ─── 2. Adatkezelő + jogszabályok + tárgy ─────────────────────────────────
+  addAtom(`
+    <h2>1. Adatkezelő megnevezése:</h2>
+    <p>Széchenyi István Egyetem (a továbbiakban: Egyetem)</p>
+    <p>cím: 9026 Győr, Egyetem tér 1.</p>
+    <p>email: <a href="mailto:sze@sze.hu">sze@sze.hu</a> &nbsp;·&nbsp; telefon: +36(96) 503-400 &nbsp;·&nbsp; honlap: uni.sze.hu</p>
+    <h2>2. Adatkezelésre vonatkozó jogszabályok:</h2>
+    <p>– az Európai Parlament és a Tanács (EU) 2016/679 Rendelete (2016. április 27.) a természetes személyeknek
+    a személyes adatok kezelése tekintetében történő védelméről és az ilyen adatok szabad áramlásáról;</p>
+    <p>– az információs önrendelkezési jogról és az információszabadságról szóló 2011. évi CXII. törvény;</p>
+    <h2>3. Az adatkezelés tárgya és érintettjei:</h2>
+    <p>– Az adatkezelés tárgya: <strong>${siteName}</strong></p>
+    <p>– Az adatkezelés érintettjei: az adatkezelési folyamatban részt vevő természetes személyek</p>
+  `, 200)
+
+  // ─── 3. Fő adatkezelési táblázat (fejléc + tábla = EGY atom) ──────────────
+  const mainHeaders = ['Kezelt adatok köre', 'Adatkezelés célja', 'Adatkezelés jogalapja', 'Adatkezelés időtartama', 'Adatok forrása']
+  const mainRowCells: string[][] = allRows.length > 0
+    ? allRows.map((s: any) => [
+        s.collected_data || '—',
+        s.purpose || s.system_name || '—',
+        legalBasis(s),
+        retentionPeriod(s),
+        'az érintett önkéntes adatszolgáltatása'
+      ])
+    : [['Nem rögzítettek adatkezelési folyamatot.', '', '', '', '']]
+
+  const mainTable = buildTable(mainHeaders, mainRowCells)
+  addAtom(`
+    <h2>4. A kezelt adatok köre, az adatkezelés célja, időtartama, jogalapja, adatok forrása</h2>
+    ${mainTable.html}
+  `, H2_H + mainTable.estH)
+
+  // ─── 4. Adattovábbítás (fejléc + bevezető + tábla = EGY atom) ─────────────
+  const tpHeaders = ['Szolgáltatás neve', 'Adatkezelés célja', 'Kezelt adatok']
+  const tpRowCells: string[][] = thirdParties.length > 0
+    ? thirdParties.map((s: any) => [s.system_name, s.purpose || '—', s.collected_data || '—'])
+    : [['Jelen adatkezeléshez az Egyetem nem vesz igénybe adatfeldolgozót.', '', '']]
+
+  const tpTable = buildTable(tpHeaders, tpRowCells)
+  addAtom(`
+    <h2>5. Adattovábbítás, adatfeldolgozás</h2>
+    <p>Az Egyetem kizárólag jogszabály engedélye vagy az érintett hozzájárulása alapján kivételes esetben
+    továbbít személyes adatokat harmadik fél részére.</p>
+    ${tpTable.html}
+  `, H2_H + P_H + tpTable.estH)
+
+  // ─── 5. Sütik (fejléc + bevezető + tábla + megjegyzés = EGY atom) ─────────
+  if (hasCookies) {
+    const cookieHeaders  = ['Sütik / Szolgáltatás neve', 'Célkitűzés', 'Kezelt adatok']
+    const cookieRowCells = cookieSystems.map((s: any) => [
+      s.system_name, s.purpose || '—', s.collected_data || '—'
+    ])
+    const cookieTable = buildTable(cookieHeaders, cookieRowCells)
+    addAtom(`
+      <h2>6. Sütik (Cookie-k) használata</h2>
+      <p>A weboldal az alábbi sütiket alkalmazza:</p>
+      ${cookieTable.html}
+      <p>A sütik elfogadása önkéntes. A böngésző beállításaiban bármikor törölhetők.</p>
+    `, H2_H + P_H + cookieTable.estH + P_H)
+  }
+
+  // ─── 6. Adatbiztonság ──────────────────────────────────────────────────────
+  const sec = hasCookies ? 7 : 6
+  addAtom(`
+    <h2>${sec}. Adatbiztonsági intézkedések:</h2>
+    <p>Az Egyetem a megfelelő technikai vagy szervezési intézkedések alkalmazásával biztosítja a személyes
+    adatok megfelelő biztonságát, az adatok jogosulatlan vagy jogellenes kezelésével, véletlen elvesztésével,
+    megsemmisítésével vagy károsodásával szembeni védelmet is ideértve.</p>
+  `, H2_H + P_H * 2)
+
+  // ─── 7. Jogok blokk ────────────────────────────────────────────────────────
+  addAtom(`
+    <h2>${sec + 1}. Az Ön adatkezeléssel kapcsolatos jogai:</h2>
+    <p>Az Ön adatvédelmi jogait és jogorvoslati lehetőségeit részletesen a GDPR tartalmazza (különösen a GDPR 15.,
+    16., 17., 18., 19., 21., 22., 77., 78., 79. és 82. cikkei). Jogait az alábbi elérhetőségen keresztül
+    gyakorolhatja:</p>
+    <p>személyesen: 9026 Győr, Egyetem tér 1. &nbsp;·&nbsp; telefonon: +3696 503 400 &nbsp;·&nbsp;
+    emailen: <a href="mailto:adatvedelem@sze.hu">adatvedelem@sze.hu</a></p>
+    <p>adatvédelmi tisztviselő neve: dr. Pőcze Péter &nbsp;·&nbsp; telefon: +3696/503-400 3173-as mellék</p>
+    <h3>Tájékoztatáshoz való jog:</h3>
+    <p>Ön írásban bármikor tájékoztatást kérhet a személyes adatai kezeléséről (milyen adatait, milyen jogalapon,
+    célból, forrásból kezeli az adatkezelő, mennyi ideig, kinek továbbítja).</p>
+    <h3>Helyesbítéshez való jog:</h3>
+    <p>Ön jogosult arra, hogy kérésére az Egyetem helyesbítse az Önre vonatkozó pontatlan személyes adatokat,
+    illetve a hiányos személyes adatokat kiegészítse.</p>
+    <h3>Törléshez való jog:</h3>
+    <p>Ön írásban kérheti személyes adatainak törlését, kivéve ha az adatkezelés jogszabályi kötelezettség
+    teljesítéséhez szükséges.</p>
+    <h3>Korlátozáshoz való jog:</h3>
+    <p>Az adatkezelő az érintett írásbeli kérésére korlátozza az adatkezelést, ha az érintett vitatja az adatok
+    pontosságát, az adatkezelés jogellenes, vagy az adatkezelőnek már nincs szüksége az adatokra de az érintett
+    kéri a megtartásukat.</p>
+    <h3>Tiltakozáshoz való jog:</h3>
+    <p>Ön jogosult arra, hogy saját helyzetével kapcsolatos okokból tiltakozzon a jogos érdek alapján végzett
+    adatkezelés ellen. Ebben az esetben az adatkezelő a személyes adatokat nem kezelheti tovább, kivéve, ha az
+    adatkezelő bizonyítja, hogy az adatkezelést olyan kényszerítő erejű jogos okok indokolják, amelyek elsőbbséget
+    élveznek az érintett érdekeivel, jogaival szemben.</p>
+    <h3>Önkéntes hozzájárulás visszavonásához való jog:</h3>
+    <p>Az adatkezeléshez adott hozzájárulás bármikor visszavonható. A visszavonás nem érinti a visszavonás előtti
+    adatkezelés jogszerűségét.</p>
+  `, H2_H + P_H * 3 + H3_H * 5 + P_H * 5)
+
+  // ─── 8. Jogorvoslat + NAIH táblázat ───────────────────────────────────────
+  const naihRowCells = [
+    ['cím:', '1055 Budapest, Falk Miksa utca 9-11.'],
+    ['postacím:', '1363 Budapest, Pf.: 9.'],
+    ['telefonszám:', '+36 (1) 391-1400'],
+    ['e-mail:', '<a href="mailto:ugyfelszolgalat@naih.hu">ugyfelszolgalat@naih.hu</a>'],
+    ['web:', '<a href="https://naih.hu" target="_blank">https://naih.hu/</a>'],
+  ]
+  const naihRowsH = naihRowCells.reduce((sum, cells) => sum + estimateRowHeight(cells), 0)
+  const naihEstH  = THEAD_H + naihRowsH + 16
+
+  addAtom(`
+    <h2>${sec + 2}. Az Ön jogérvényesítési lehetőségei</h2>
+    <p>Amennyiben az Ön megítélése szerint az adatkezelés jogellenes, a Nemzeti Adatvédelmi és
+    Információszabadság Hatósághoz (NAIH) vagy bírósághoz fordulhat:</p>
+    <table class="naih-table">
       <thead><tr>
-        <th>Sütik / Szolgáltatás neve</th><th>Célkitűzés</th><th>Kezelt adatok</th>
+        <th colspan="2" style="background:#555;border-color:#555;color:#fff;padding:5px 7px;font-weight:700">
+          NAIH elérhetőségei
+        </th>
       </tr></thead>
       <tbody>
-        ${cookieSystems.map(s => `
-          <tr>
-            <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b">${s.system_name}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.purpose || '—'}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#475569">${s.collected_data || '—'}</td>
-          </tr>`).join('')}
+        ${naihRowCells.map((cells, i) => trRow(cells, i % 2 === 1)).join('')}
       </tbody>
     </table>
-    <p>A sütik elfogadása önkéntes. A böngésző beállításaiban bármikor törölhetők.</p>` : ''
+    <p>Bírósági eljárást is kezdeményezhet az adatkezelő ellen: <a href="http://www.birosag.hu" target="_blank">www.birosag.hu</a></p>
+    <p style="margin-top:20px;font-size:10px;color:#888;text-align:center">
+      Generálva: ${today} &nbsp;·&nbsp; v${newVersion} &nbsp;·&nbsp;
+    </p>
+  `, H2_H + P_H + naihEstH + P_H * 2)
 
-  const n = cookieSystems.length > 0
+  // ─── Atom-alapú lapozás ────────────────────────────────────────────────────
+  const pages: string[] = []
+  let currentContent = ''
+  let currentH = 0
 
+  function flushPage() {
+    if (currentContent.trim()) pages.push(makePage(currentContent))
+    currentContent = ''
+    currentH = 0
+  }
+
+  for (const atom of atoms) {
+    if (currentH + atom.estH > AVAIL && currentH > 0) {
+      flushPage()
+    }
+    currentContent += atom.html
+    currentH += atom.estH
+  }
+  flushPage()
+
+  // ─── Teljes HTML ───────────────────────────────────────────────────────────
   const contentHtml = `<!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adatkezelési Tájékoztató – ${siteName}</title>
-  <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.7; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
-    h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-    h2 { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 40px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #f1f5f9; }
-    p { margin: 8px 0; font-size: 14px; color: #334155; }
-    ul { font-size: 14px; color: #334155; padding-left: 20px; }
-    li { margin-bottom: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th { background: #f8fafc; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-    .meta { font-size: 13px; color: #64748b; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
-    .badge { display: inline-block; background: #ecfdf5; color: #065f46; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid #d1fae5; }
-    a { color: #0ea5e9; }
-  </style>
+  <style>${css}</style>
 </head>
 <body>
-
-<h1>Adatkezelési Tájékoztató</h1>
-<div class="meta">
-  <strong>${siteName}</strong> &nbsp;·&nbsp;
-  Verzió: <span class="badge">v${newVersion}</span> &nbsp;·&nbsp;
-  Hatályos: ${today}-tól
-</div>
-
-<h2>1. Az adatkezelő adatai</h2>
-<p>
-  <strong>Cégnév:</strong> ${company.name || '—'}<br>
-  <strong>Székhely:</strong> ${company.headquarters || '—'}<br>
-  <strong>Adószám:</strong> ${company.tax_number || '—'}<br>
-  <strong>Cégjegyzékszám:</strong> ${company.registration_number || '—'}<br>
-  <strong>E-mail:</strong> <a href="mailto:${company.email}">${company.email || '—'}</a><br>
-  <strong>Telefon:</strong> ${company.phone || '—'}
-</p>
-
-<h2>2. Adatvédelmi tisztviselő (DPO)</h2>
-${dpoSection}
-
-<h2>3. A kezelt adatok, az adatkezelés célja, jogalapja és megőrzési ideje</h2>
-<p>A(z) <strong>${siteName}</strong> az alábbi személyes adatokat kezeli:</p>
-<table>
-  <thead><tr>
-    <th>Rendszer / Folyamat</th>
-    <th>Kezelt adatok</th>
-    <th>Az adatkezelés célja</th>
-    <th>Jogalap</th>
-    <th>Megőrzési idő</th>
-  </tr></thead>
-  <tbody>${mainTableRows}</tbody>
-</table>
-
-<h2>4. Harmadik fél adatfeldolgozók</h2>
-<p>A weboldal az alábbi külső szolgáltatásokat veszi igénybe:</p>
-<table>
-  <thead><tr>
-    <th>Szolgáltatás neve</th><th>Adatkezelés célja</th><th>Kezelt adatok</th>
-  </tr></thead>
-  <tbody>${thirdPartyRows}</tbody>
-</table>
-<p style="margin-top:12px;font-size:13px;color:#64748b">Ezek a szolgáltatók saját adatkezelési tájékoztatójuk szerint kezelik az általuk gyűjtött adatokat.</p>
-
-${cookieSection}
-
-<h2>${n ? '6' : '5'}. Tárhelyszolgáltató (adatfeldolgozó)</h2>
-<p>
-  <strong>Cégnév:</strong> ${company.hosting_provider_name || '—'}<br>
-  <strong>Cím:</strong> ${company.hosting_provider_address || '—'}<br>
-  <strong>E-mail:</strong> ${company.hosting_provider_email || '—'}
-</p>
-
-<h2>${n ? '7' : '6'}. Automatizált döntéshozatal és profilalkotás</h2>
-<p>Az adatkezelés automatizált döntéshozatalt vagy profilalkotást <strong>nem végez</strong> (GDPR 22. cikk).</p>
-
-<h2>${n ? '8' : '7'}. Az érintett jogai</h2>
-<p>A GDPR alapján Ön az alábbi jogokkal rendelkezik:</p>
-<ul>
-  <li><strong>Hozzáférési jog (15. cikk):</strong> tájékoztatást kérhet a kezelt adatairól</li>
-  <li><strong>Helyesbítési jog (16. cikk):</strong> kérheti a pontatlan adatok javítását</li>
-  <li><strong>Törlési jog (17. cikk):</strong> kérheti adatai törlését</li>
-  <li><strong>Az adatkezelés korlátozásához való jog (18. cikk):</strong> kérheti az adatkezelés korlátozását</li>
-  <li><strong>Adathordozhatósághoz való jog (20. cikk):</strong> kérheti adatait géppel olvasható formátumban</li>
-  <li><strong>Tiltakozáshoz való jog (21. cikk):</strong> tiltakozhat az adatkezelés ellen</li>
-  <li><strong>Hozzájárulás visszavonása:</strong> hozzájárulás alapú adatkezelésnél bármikor visszavonhatja</li>
-</ul>
-<p>Jogait az alábbi e-mail címen gyakorolhatja: <a href="mailto:${company.email}">${company.email || '—'}</a></p>
-<p>Jogorvoslati lehetőséggel élhet a <strong>Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH)</strong>:<br>
-  Cím: 1055 Budapest, Falk Miksa utca 9-11. &nbsp;·&nbsp;
-  Web: <a href="https://www.naih.hu" target="_blank">www.naih.hu</a> &nbsp;·&nbsp;
-  E-mail: ugyfelszolgalat@naih.hu
-</p>
-
-<h2>${n ? '9' : '8'}. Adatbiztonsági intézkedések</h2>
-<p>Az adatkezelő megfelelő technikai és szervezési intézkedéseket alkalmaz a személyes adatok védelme érdekében, beleértve a titkosítást, hozzáférés-vezérlést és rendszeres biztonsági felülvizsgálatokat.</p>
-
-<h2>${n ? '10' : '9'}. Tájékoztató módosítása</h2>
-<p>Az adatkezelő fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja.</p>
-
-<p style="margin-top:48px;font-size:12px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:16px">
-  Generálva: ${today} &nbsp;·&nbsp; DataKomp automatikus tájékoztató generátor &nbsp;·&nbsp; v${newVersion}
-</p>
-
+  <div class="document">
+    ${pages.join('\n')}
+  </div>
 </body>
 </html>`
 
+  // ─── Mentés Supabase-be ────────────────────────────────────────────────────
   await supabase
     .from('policies')
     .update({ status: 'archived', valid_to: new Date().toISOString() })
@@ -379,7 +567,6 @@ ${cookieSection}
     status:       'current',
     valid_from:   new Date().toISOString()
   }])
-
   if (error) throw error
 
   await supabase
@@ -394,7 +581,6 @@ ${cookieSection}
 export async function restorePolicy(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
-
   const { data: toRestore } = await supabase
     .from('policies').select('*').eq('id', id).single()
   if (!toRestore) throw new Error("A tájékoztató nem található!")
@@ -507,7 +693,7 @@ export async function acceptAllPending() {
 
   if (!websites || websites.length === 0) return
 
-  const websiteIds = websites.map((w) => w.id)
+  const websiteIds = websites.map((w: any) => w.id)
 
   const { error } = await supabase
     .from('systems')

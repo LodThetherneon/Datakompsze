@@ -11,12 +11,12 @@ export default async function LoginPage({
   const tab = params.tab ?? 'login';
 
   return (
-    <div className="h-screen flex bg-[#133636] font-sans overflow-hidden">
+    <div className="h-screen flex bg-[#234357] font-sans overflow-hidden">
 
       {/* Háttér geometria */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Zöld glow bal felül */}
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute -top-60 -left-60 w-[800px] h-[800px] rounded-full bg-emerald-500/10 blur-[100px]" />
         {/* Sötét zöld glow jobb alul */}
         <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full bg-emerald-700/8 blur-[100px]" />
         {/* Grid pattern */}

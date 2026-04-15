@@ -2,29 +2,65 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import {
   Document, Packer, Paragraph, TextRun,
-  HeadingLevel, BorderStyle, AlignmentType,
+  BorderStyle, AlignmentType,
   Table, TableRow, TableCell, WidthType, ShadingType,
+  Header, Footer, ImageRun,
 } from 'docx'
 import { parse } from 'node-html-parser'
+import fs from 'fs'
+import path from 'path'
+import sharp from 'sharp'
 
 function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
   const root = parse(html)
   const result: (Paragraph | Table)[] = []
 
-  for (const node of root.querySelector('body')?.childNodes ?? root.childNodes) {
+  const pageContents = root.querySelectorAll('.page-content')
+  const nodes = pageContents.length > 0
+    ? pageContents.flatMap(pc => [...pc.childNodes])
+    : [...(root.querySelector('body')?.childNodes ?? root.childNodes)]
+
+  for (const node of nodes) {
     const tag = (node as any).tagName?.toLowerCase()
+
+    if (tag === 'div') {
+      const cls = (node as any).classNames ?? ''
+      if (cls.includes('doc-title')) {
+        const h1 = (node as any).querySelector('h1')
+        const sub = (node as any).querySelector('.sub')
+        if (h1) {
+          result.push(new Paragraph({
+            children: [new TextRun({ text: h1.text.trim(), bold: true, size: 32, font: 'Calibri', color: '0f172a' })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 100 },
+          }))
+        }
+        if (sub) {
+          result.push(new Paragraph({
+            children: [new TextRun({ text: sub.text.trim(), bold: true, size: 26, font: 'Calibri', color: '0f172a' })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 },
+          }))
+        }
+      }
+      continue
+    }
 
     if (tag === 'h1') {
       result.push(new Paragraph({
-        children: [new TextRun({ text: node.text.trim(), bold: true, size: 40, font: 'Calibri', color: '0f172a' })],
+        children: [new TextRun({ text: node.text.trim(), bold: true, size: 32, font: 'Calibri', color: '0f172a' })],
+        alignment: AlignmentType.CENTER,
         spacing: { after: 200 },
       }))
     } else if (tag === 'h2') {
       result.push(new Paragraph({
-        text: node.text.trim(),
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 300, after: 100 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'e2e8f0' } },
+        children: [new TextRun({ text: node.text.trim(), bold: true, size: 22, font: 'Calibri', color: '1a1a1a' })],
+        spacing: { before: 280, after: 80 },
+      }))
+    } else if (tag === 'h3') {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: node.text.trim(), bold: true, italics: true, size: 22, font: 'Calibri', color: '1a1a1a' })],
+        spacing: { before: 160, after: 60 },
       }))
     } else if (tag === 'p') {
       const text = node.text.trim()
@@ -52,7 +88,7 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
               children: [new Paragraph({
                 children: [new TextRun({ text: th.text.trim(), bold: true, size: 18, font: 'Calibri', color: 'ffffff' })],
               })],
-              shading: { type: ShadingType.SOLID, color: '334155' },
+              shading: { type: ShadingType.SOLID, color: '1a3a6b' },
               width: { size: Math.floor(9000 / headerCells.length), type: WidthType.DXA },
             })
           ),
@@ -88,6 +124,14 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
   return result
 }
 
+// A4 belső szélesség (margók nélkül): 21cm - 2*1.27cm = 18.46cm
+// EMU: 1cm = 360000, tehát 18.46cm = 6645600 EMU
+// px: 1px = 9525 EMU → 6645600 / 9525 ≈ 697px szélesség DOCX-ban
+const DOCX_WIDTH_PX  = 697   // belső szélesség px-ben a DOCX-ban
+const ORIG_IMG_W     = 900   // szechenyi-bg.png szélessége
+const HEADER_H_ORIG  = 165   // fejléc sáv px a 900px-es képen
+const FOOTER_H_ORIG  = 114   // lábléc sáv px a 900px-es képen
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -105,6 +149,81 @@ export async function GET(
 
   const children = htmlToDocxChildren(policy.content_html)
 
+  // ─── Fejléc / lábléc kép előkészítése sharp-pal ────────────────────────
+  let headerSection: Header
+  let footerSection: Footer
+
+  const imgPath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
+
+  if (fs.existsSync(imgPath)) {
+    // Fejléc: felső 165px kivágása, majd átméretezés DOCX szélességre
+    const headerImgBuf = await sharp(imgPath)
+      .extract({ left: 0, top: 0, width: ORIG_IMG_W, height: HEADER_H_ORIG })
+      .resize({ width: DOCX_WIDTH_PX })
+      .png()
+      .toBuffer()
+
+    // Lábléc: alsó 114px kivágása
+    const footerImgBuf = await sharp(imgPath)
+      .extract({ left: 0, top: 1273 - FOOTER_H_ORIG, width: ORIG_IMG_W, height: FOOTER_H_ORIG })
+      .resize({ width: DOCX_WIDTH_PX })
+      .png()
+      .toBuffer()
+
+    // Arányos magasság kiszámítása az átméretezett képhez
+    const headerScaledH = Math.round((HEADER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
+    const footerScaledH = Math.round((FOOTER_H_ORIG / ORIG_IMG_W) * DOCX_WIDTH_PX)
+
+    headerSection = new Header({
+      children: [
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: headerImgBuf,
+              transformation: { width: DOCX_WIDTH_PX, height: headerScaledH },
+              type: 'png',
+            }),
+          ],
+          spacing: { before: 0, after: 0 },
+        }),
+      ],
+    })
+
+    footerSection = new Footer({
+      children: [
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: footerImgBuf,
+              transformation: { width: DOCX_WIDTH_PX, height: footerScaledH },
+              type: 'png',
+            }),
+          ],
+          spacing: { before: 0, after: 0 },
+        }),
+      ],
+    })
+  } else {
+    // Fallback szöveges fejléc/lábléc ha nincs kép
+    headerSection = new Header({
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: 'SZÉCHENYI ISTVÁN EGYETEM', bold: true, size: 24, font: 'Calibri', color: '1a3a6b' })],
+          alignment: AlignmentType.CENTER,
+        }),
+      ],
+    })
+    footerSection = new Footer({
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: 'SZÉCHENYI ISTVÁN EGYETEM  |  9026 GYŐR, EGYETEM TÉR 1.  |  UNI.SZE.HU', size: 16, font: 'Calibri', color: '555555' })],
+          alignment: AlignmentType.CENTER,
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'dddddd' } },
+        }),
+      ],
+    })
+  }
+
   const doc = new Document({
     sections: [{
       properties: {
@@ -112,6 +231,8 @@ export async function GET(
           margin: { top: 1200, bottom: 1200, left: 1200, right: 1200 },
         },
       },
+      headers: { default: headerSection },
+      footers: { default: footerSection },
       children,
     }],
   })
