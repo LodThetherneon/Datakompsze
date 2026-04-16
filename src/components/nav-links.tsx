@@ -32,16 +32,16 @@ export function NavLinks() {
             href={item.href}
             className={`group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium transition-all duration-200 ${
               isActive
-                ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
+                ? 'bg-blue-50 text-blue-700 font-semibold'
+                : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700'
             }`}
           >
             <Icon
               size={18}
               className={`transition-colors ${
                 isActive
-                  ? 'text-emerald-600'
-                  : 'text-slate-400 group-hover:text-emerald-600'
+                  ? 'text-blue-600'
+                  : 'text-slate-400 group-hover:text-blue-600'
               }`}
             />
             <span>{item.label}</span>
