@@ -11,12 +11,12 @@ export default async function LoginPage({
   const tab = params.tab ?? 'login';
 
   return (
-    <div className="h-screen flex bg-[#234357] font-sans overflow-hidden">
+    <div className="h-screen flex bg-[#193A47] font-sans overflow-hidden">
 
       {/* Háttér geometria */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Zöld glow bal felül */}
-        <div className="absolute -top-60 -left-60 w-[800px] h-[800px] rounded-full bg-emerald-500/10 blur-[100px]" />
+        <div className="absolute -top-60 -left-60 w-[2500px] h-[500px] rounded-full bg-emerald-400/20 blur-[200px]" />
         {/* Sötét zöld glow jobb alul */}
         <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full bg-emerald-700/8 blur-[100px]" />
         {/* Grid pattern */}
@@ -29,37 +29,37 @@ export default async function LoginPage({
       </div>
 
       {/* Bal oldal — branding */}
-      <div className="hidden lg:flex flex-col justify-between w-[52%] p-14 pl-50 relative">
+      <div className="hidden lg:flex flex-col justify-between w-[60%] p-15 pl-30 relative">
 
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-            <ShieldCheck size={20} className="text-white" />
-          </div>
-          <span className="text-xl font-bold text-white tracking-tight">
-            Data<span className="text-emerald-400">Komp</span>
-          </span>
+          <img
+            src="/szelogo-removebg-preview.png"
+            alt="Széchenyi István Egyetem"
+            className="h-22 w-auto object-contain"
+            style={{ mixBlendMode: 'multiply' }}
+          />
         </div>
 
         {/* Közép tartalom */}
-        <div className="max-w-3xl pl-8">
+        <div className="max-w-3xl pl-2">
       
           <h1 className="text-5xl font-black text-white leading-tight mb-5 tracking-tight">
-            Adatvagyon & Adatvédelem<br />
-            <span className="text-emerald-400"> kezelése egy rendszerben.</span>
+            Adatvagyont & Adatvédelmet<br />
+            <span className="text-emerald-400"> kezelő rendszer </span>
           </h1>
 
-          <p className="text-white/40 text-[15px] leading-relaxed mb-10">
+          <p className="text-white/80 text-[15px] leading-relaxed mb-10">
             Kezelje az adatvédelmi kötelezettségeit, adatvagyonát egyetlen platformon. 
           </p>
 
           {/* Feature kártyák */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: Map, label: 'Adattérkép', desc: 'Automatikus rendszertérkép' },
+              { icon: Map, label: 'Adattérkép', desc: 'Adatvagyon adatbázis' },
               { icon: FileText, label: 'Tájékoztatók', desc: 'Generálás egy kattintással' },
-              { icon: Lock, label: 'GDPR követés', desc: 'Folyamatos megfelelőség' },
-              { icon: ShieldCheck, label: 'Integráció', desc: 'Meglévő rendszerek' },
+              { icon: Lock, label: 'Adatkezelések', desc: 'Folyamatos megfelelőség' },
+              { icon: ShieldCheck, label: 'Integráció', desc: 'Meglévő rendszerekhez, folyamatokhoz' },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex items-start gap-3 p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl hover:bg-white/[0.05] transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -74,7 +74,7 @@ export default async function LoginPage({
           </div>
         </div>
 
-        <p className="text-white/70 text-[12px]">© 2026 DataKomp. Minden jog fenntartva.</p>
+        <p className="text-white/80 text-[12px] mt-8">© 2026 Széchenyi István Egyetem. Minden jog fenntartva.</p>
       </div>
 
       {/* Jobb oldal — form panel */}
@@ -97,11 +97,11 @@ export default async function LoginPage({
           </div>
 
           {/* Lábléc */}
-          <p className="text-center text-[11px] text-white/70 mt-6">
+          <p className="text-center text-[11px] text-white/80 mt-6">
             A belépéssel elfogadod az{' '}
-            <a href="#" className="text-white/80 hover:text-white/60 underline underline-offset-2 transition-colors">Adatvédelmi tájékoztatót</a>
+            <a href="#" className="text-white/80 hover:text-white/90 underline underline-offset-2 transition-colors">Adatvédelmi tájékoztatót</a>
             {' '}és az{' '}
-            <a href="#" className="text-white/80 hover:text-white/60 underline underline-offset-2 transition-colors">ÁSZF-et</a>.
+            <a href="#" className="text-white/80 hover:text-white/90 underline underline-offset-2 transition-colors">ÁSZF-et</a>.
           </p>
         </div>
       </div>

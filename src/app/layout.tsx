@@ -83,16 +83,16 @@ export default async function RootLayout({
               {/* Logó */}
               <div className="h-[72px] flex items-center px-6 border-b border-slate-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-[10px] bg-emerald-500 flex items-center justify-center shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-                    <ShieldCheck className="text-white" size={18} />
-                  </div>
-                  <span className="text-xl font-bold text-slate-900 tracking-tight">
-                    Data<span className="text-emerald-600">Komp</span>
-                  </span>
+                  <img
+                    src="/szelogo.png"
+                    alt="Széchenyi István Egyetem"
+                    className="h-17 w-auto object-contain"
+                  />
                 </div>
               </div>
 
-              {/* Csomag blokk */}
+            {/* Csomag blokk — ideiglenesen inaktív
+            <div className="px-5 py-6">
               <div className="px-5 py-6">
                 <div className="w-full flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-[12px] shadow-sm">
                   <div className="flex flex-col text-left">
@@ -110,7 +110,7 @@ export default async function RootLayout({
                   </div>
                 </div>
               </div>
-
+            */}
               <NavLinks />
 
               {/* Kvóta szekció */}

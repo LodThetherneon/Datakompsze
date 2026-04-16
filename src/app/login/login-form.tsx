@@ -85,7 +85,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
         <form className="space-y-5">
           <div>
             <label className={labelClass}>Email cím</label>
-            <input name="email" type="email" required placeholder="biztosadat@sze.hu" className={inputClass} />
+            <input name="email" type="email" required placeholder="adatvedelem@sze.hu" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Jelszó</label>
@@ -102,7 +102,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             Belépés
             <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
-          <p className="text-center text-[12px] text-white/70 mt-2">
+          <p className="text-center text-[12px] text-white/80 mt-2">
             Még nincs fiókod?{' '}
             <button type="button" onClick={() => setTab('register')} className="text-emerald-400 font-bold hover:text-emerald-300 transition-colors">
               Regisztrálj ingyen
@@ -129,12 +129,12 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
 
           <div>
             <label className={labelClass}>Email cím</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@ceg.hu" className={inputClass} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="adatvedelem@sze.hu" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Jelszó</label>
             <div className="relative">
-              <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 6 karakter" className={inputClass + ' pr-11'} />
+              <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 8 karakter" className={inputClass + ' pr-11'} />
               <button type="button" onClick={() => setShowPass(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
