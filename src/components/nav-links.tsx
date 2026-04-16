@@ -11,7 +11,7 @@ const navItems = [
   { href: '/data-registry', label: 'Folyamatnyilvántartás', icon: FolderKanban },
   { href: '/policies', label: 'Tájékoztatók', icon: FileText },
   { href: '/company', label: 'Cégadatok', icon: Building2 },
-  { href: '/settings', label: 'Előfizetés', icon: Settings },
+  { href: '/settings', label: 'Beállítások', icon: Settings },
 ]
 
 export function NavLinks() {

@@ -151,7 +151,7 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = fal
                 </div>
               )}
 
-              <DialogFooter className="gap-2 sm:gap-0 pt-4">
+              <DialogFooter className="gap-2 sm:gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -185,7 +185,7 @@ export function DeleteConfirmDialog({ id, systemName, websiteId, hasPolicy = fal
               </DialogDescription>
             </DialogHeader>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-6">
+            <DialogFooter className="gap-2 sm:gap-2 pt-6">
               <Button
                 type="button"
                 variant="outline"

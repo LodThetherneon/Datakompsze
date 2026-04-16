@@ -85,11 +85,11 @@ export function SettingsForm({ company, saveAction, deleteAction }: SettingsForm
             </div>
             <DialogTitle className="text-xl font-bold text-slate-800">Cégadatok törlése</DialogTitle>
             <DialogDescription className="text-sm text-slate-500 pt-1">
-              Ez a művelet <strong className="text-slate-800">visszafordíthatatlan</strong>. Minden megadott cégadat törlésre kerül.
+              Ez a művelet <strong className="text-slate-800">visszafordíthatatlan</strong>. Minden megadott cégadat törlésre kerül. Ha csak egy adatot szeretne módosítani, kérem használja a fenti űrlapot.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-4">
+          <DialogFooter className="gap-2 sm:gap-2 pt-4">
             <Button
               type="button"
               variant="outline"

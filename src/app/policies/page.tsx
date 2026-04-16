@@ -3,6 +3,7 @@ import { deletePolicy, restorePolicy } from "@/app/actions";
 import { FileText, Clock, Filter, RotateCcw, RefreshCw, Trash2, Sparkles, ChevronDown, Globe, Tag, Settings2 } from 'lucide-react'
 import { PolicyDownloadButtons } from '@/components/policy-download-buttons'
 import { GeneratePolicyForm } from '@/components/generate-policy-form'
+import { DeleteProcessButton } from '@/components/delete-process-button'
 
 function formatDate(d: string | null) {
   if (!d) return "—";
@@ -62,7 +63,7 @@ export default async function PoliciesPage({
   }
 
   return (
-    <div className="w-full space-y-8 font-sans">
+    <div className="w-full space-y-8 font-sans [overflow-anchor:none]" style={{ scrollbarGutter: 'stable' }}>
 
       {/* FEJLÉC */}
       <header className="flex flex-col gap-6 pb-6 border-b border-slate-200/80">
@@ -222,15 +223,14 @@ export default async function PoliciesPage({
                         <RefreshCw size={13} /> Frissítés
                       </button>
                     </form>
-                    <form action={deletePolicy}>
-                      <input type="hidden" name="id" value={policy.id} />
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-600 transition-colors"
-                      >
-                        <Trash2 size={13} /> Törlés
-                      </button>
-                    </form>
+                    <DeleteProcessButton
+                      id={policy.id}
+                      processName={`${siteName} – v${policy.version} tájékoztató`}
+                      deleteAction={async (formData) => {
+                        'use server'
+                        await deletePolicy(formData)
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -271,9 +271,9 @@ export default async function PoliciesPage({
                       <div className="flex items-center justify-end gap-2">
                         <a
                           href={`/policies/${policy.id}`}
-                          className="text-blue-600 hover:underline text-[12px] font-semibold"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
                         >
-                          Megnyitás
+                          <FileText size={13} /> Megtekintés
                         </a>
                         <PolicyDownloadButtons
                           policyId={policy.id}
@@ -283,20 +283,19 @@ export default async function PoliciesPage({
                           <input type="hidden" name="id" value={policy.id} />
                           <button
                             type="submit"
-                            className="flex items-center gap-1 text-[12px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
                           >
-                            <RotateCcw size={11} /> Visszaállítás
+                            <RotateCcw size={11} /> Aktiválás
                           </button>
                         </form>
-                        <form action={deletePolicy}>
-                          <input type="hidden" name="id" value={policy.id} />
-                          <button
-                            type="submit"
-                            className="flex items-center gap-1 text-[12px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={11} /> Törlés
-                          </button>
-                        </form>
+                        <DeleteProcessButton
+                          id={policy.id}
+                          processName={`${getSiteName(policy.website_id)} – v${policy.version} tájékoztató`}
+                          deleteAction={async (formData) => {
+                            'use server'
+                            await deletePolicy(formData)
+                          }}
+                        />
                       </div>
                     </td>
                   </tr>
