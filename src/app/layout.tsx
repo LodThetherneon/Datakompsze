@@ -190,7 +190,10 @@ export default async function RootLayout({
                   )}
 
               {/* ================= TARTALOM & FOOTER ================= */}
-              <main className={`flex-1 ${!user ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth`}>
+              <main
+                className={`flex-1 ${!user ? 'overflow-hidden' : 'overflow-y-auto'} scroll-smooth`}
+                style={user ? { scrollbarGutter: 'stable' } : undefined}
+              >
                 <div className={user
                   ? "min-h-[calc(100vh-72px-76px)] p-6 lg:p-12 xl:px-16 w-full"
                   : "h-full w-full p-0 m-0"
