@@ -10,6 +10,8 @@ import { SourceTypeFilter } from '@/components/source-type-filter'
 import { RetentionEditor } from '@/components/retention-editor'
 import { AcceptSystemButton } from '@/components/accept-system-button'
 import { PenLine, ScanSearch, Tag, Database, Globe, CheckCircle2, GitBranch, Settings2 } from 'lucide-react'
+import { SystemDetailDialog } from '@/components/system-detail-dialog'
+import { updateSystem } from '@/app/actions'
 
 export default async function SystemsPage(props: {
   searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
@@ -177,7 +179,9 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group">
+                  className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
+
+                  <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
                   {/* Ikon */}
                   <div className="flex items-center justify-center pt-0.5">
                     <span

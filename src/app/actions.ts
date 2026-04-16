@@ -712,3 +712,19 @@ export async function updateRetentionPeriod(id: string, value: string) {
     .update({ retention_period: value })
     .eq('id', id)
 }
+
+export async function updateSystem(formData: FormData) {
+  const supabase = await createClient()
+  const id = formData.get('id') as string
+  const { error } = await supabase
+    .from('systems')
+    .update({
+      system_name:    (formData.get('system_name')    as string)?.trim() || undefined,
+      purpose:        (formData.get('purpose')         as string)?.trim() || undefined,
+      collected_data: (formData.get('collected_data')  as string)?.trim() || undefined,
+      retention_period: (formData.get('retention_period') as string)?.trim() || undefined,
+    })
+    .eq('id', id)
+  if (error) throw error
+  revalidatePath('/systems')
+}
