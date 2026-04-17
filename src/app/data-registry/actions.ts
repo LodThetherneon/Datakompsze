@@ -95,65 +95,57 @@ export async function linkWebsiteToProcess(formData: FormData) {
   const process_id = formData.get('process_id') as string
   const website_id = formData.get('website_id') as string
 
-  // 1. Folyamat adatainak lekérése
   const { data: process } = await supabase
     .from('data_processes')
     .select('process_name, purpose, retention_period, storage_location, department_name, collected_data')
-    .eq('id', process_id)
-    .single()
-
+    .eq('id', process_id).single()
   if (!process) throw new Error('A folyamat nem található!')
 
-  // 2. Website adatainak lekérése
   const { data: website } = await supabase
-    .from('websites')
-    .select('url, status')
-    .eq('id', website_id)
-    .single()
-
+    .from('websites').select('url, status').eq('id', website_id).single()
   if (!website) throw new Error('A rendszer nem található!')
 
   const systemName = website.status === 'offline'
     ? website.url
     : website.url.replace(/^https?:\/\//, '')
 
-  // 3. Duplikáció védelem
-  const { data: existing } = await supabase
-    .from('systems')
-    .select('id')
+  // Meglévő systems sor keresése
+  let { data: existing } = await supabase
+    .from('systems').select('id')
     .eq('website_id', website_id)
     .eq('collected_data', process.process_name)
     .maybeSingle()
 
-  // 4. Ha még nincs ilyen sor, létrehozzuk
+  // Ha nincs, létrehozzuk és visszakérjük az id-t
   if (!existing) {
-    const { error: sysError } = await supabase.from('systems').insert([{
-      website_id,
-      system_name: systemName,
-      purpose: process.purpose || null,
-      collected_data: process.collected_data || null,
-      status: 'active',
-      source_type: 'process',
-      retention_display: process.retention_period || null,
-      retention_period: process.retention_period || null,
-      storage_location: process.storage_location || null,
-      department_name: process.department_name || null,
-    }])
+    const { data: newSys, error: sysError } = await supabase
+      .from('systems').insert([{
+        website_id,
+        system_name: systemName,
+        purpose: process.purpose || null,
+        collected_data: process.collected_data || null,
+        status: 'active',
+        source_type: 'process',
+        retention_display: process.retention_period || null,
+        retention_period: process.retention_period || null,
+        storage_location: process.storage_location || null,
+        department_name: process.department_name || null,
+      }]).select('id').single()
     if (sysError) throw sysError
+    existing = newSys
   }
 
-  // 5. Link mentése — duplikáció védelem
+  // Link mentése — systems.id-vel (nem website_id!)
   const { data: existingLink } = await supabase
-    .from('process_system_links')
-    .select('process_id')
+    .from('process_system_links').select('process_id')
     .eq('process_id', process_id)
-    .eq('system_id', website_id)
+    .eq('system_id', existing!.id)
     .maybeSingle()
 
   if (!existingLink) {
     const { error: linkError } = await supabase
       .from('process_system_links')
-      .insert([{ process_id, system_id: website_id }])
+      .insert([{ process_id, system_id: existing!.id }])
     if (linkError) throw linkError
   }
 

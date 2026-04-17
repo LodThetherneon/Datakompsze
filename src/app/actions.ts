@@ -109,10 +109,21 @@ export async function addManualSystem(formData: FormData) {
 export async function deleteSystem(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
+
   const { data: sys } = await supabase
     .from('systems').select('website_id').eq('id', id).single()
+
+  await supabase
+    .from('process_system_links')
+    .delete()
+    .eq('system_id', id)
+
   const { error } = await supabase.from('systems').delete().eq('id', id)
   if (error) throw error
+
+  revalidatePath('/systems')
+  revalidatePath('/data-registry')
+  revalidatePath('/')
   return { websiteId: sys?.website_id ?? null }
 }
 

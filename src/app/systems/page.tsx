@@ -78,10 +78,12 @@ export default async function SystemsPage(props: {
             .eq('company_id', company.id)
           if (procData) processes = procData
 
+          const systemIds = systems.map(s => s.id)  
+
           const { data: linkData } = await supabase
             .from('process_system_links')
             .select('process_id, system_id')
-            .in('system_id', websiteIds)
+            .in('system_id', systemIds)
           if (linkData) processLinks = linkData
         }
       }
@@ -163,7 +165,7 @@ export default async function SystemsPage(props: {
 
               const linkedProcess = isLinkedFromProcess
                 ? (() => {
-                    const link = processLinks.find(l => l.system_id === sys.website_id)
+                    const link = processLinks.find(l => l.system_id === sys.id)
                     return link ? processes.find(p => p.id === link.process_id) : null
                   })()
                 : null
