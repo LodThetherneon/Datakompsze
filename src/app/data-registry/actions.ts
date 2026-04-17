@@ -97,7 +97,7 @@ export async function linkWebsiteToProcess(formData: FormData) {
   // 1. Folyamat adatainak lekérése
   const { data: process } = await supabase
     .from('data_processes')
-    .select('process_name, purpose, retention_period')
+    .select('process_name, purpose, retention_period, storage_location, department_name')
     .eq('id', process_id)
     .single()
 
@@ -134,6 +134,8 @@ export async function linkWebsiteToProcess(formData: FormData) {
       status: 'active',
       source_type: 'manual',
       retention_display: process.retention_period || null,
+      storage_location: process.storage_location || null,
+      department_name: process.department_name || null,
     }])
     if (sysError) throw sysError
   }

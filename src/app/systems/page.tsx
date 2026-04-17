@@ -1,4 +1,4 @@
-import { Search, Clock } from 'lucide-react'
+import { Search, Clock, HardDrive, Target, Building2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { addManualSystem, deleteSystem } from '@/app/actions'
@@ -114,28 +114,13 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-          
-          <div className="col-span-2 flex items-center gap-1.5">
-            <Tag size={11} />
-            Adattípus neve / Kategória
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Database size={11} />
-            Kezelt adatok
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Globe size={11} />
-            Forrás
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Clock size={11} />
-            Megőrzési idő
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 size={11} />
-            Státusz
-          </div>
+        <div className="grid grid-cols-[1.6fr_1.6fr_1.6fr_1fr_1fr_1.2fr_1fr_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="flex items-center gap-1.5"><Tag size={11} /> Kategória / Folyamat</div>
+          <div className="flex items-center gap-1.5"><Database size={11} /> Kezelt adatok</div>
+          <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
+          <div className="flex items-center gap-1.5"><HardDrive size={11} /> Megőrzési hely</div>
+          <div className="flex items-center gap-1.5"><Globe size={11} /> Forrás / Szervezeti egység</div>
+          <div className="flex items-center gap-1.5"><CheckCircle2 size={11} /> Státusz</div>
           <div className="flex items-center justify-end gap-1.5 pr-4"><Settings2 size={11} /> Műveletek</div>
         </div>
 
@@ -179,65 +164,60 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2rem_2fr_2fr_1fr_1fr_1.4fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
+                  className="grid grid-cols-[1.6fr_1.6fr_1.6fr_1fr_1fr_1fr_1.2fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
 
                   <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
-                  {/* Ikon */}
-                  <div className="flex items-center justify-center pt-0.5">
-                    <span
-                      title={isManual ? 'Manuálisan rögzítve' : 'Scanner által azonosítva'}
-                      className={`inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
-                        isManual
-                          ? 'bg-amber-50 text-amber-500 border border-amber-100'
-                          : 'bg-sky-50 text-sky-500 border border-sky-100'
-                      }`}
-                    >
-                      {isManual ? <PenLine size={10} /> : <ScanSearch size={10} />}
-                    </span>
-                  </div>
-
-                  {/* Adattípus neve / Kategória */}
-                  <div className="min-w-0">
-                    <div className="font-bold text-[14px] text-slate-800 line-clamp-1 leading-snug">
-                      {website?.url?.replace(/^https?:\/\//, '') ?? sys.system_name}
+                  
+                  {/* 1. Kategória / Folyamat neve */}
+                  <div className="min-w-0 pt-0.5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={`inline-flex items-center justify-center w-4 h-4 rounded shrink-0 ${
+                        isManual ? 'bg-amber-50 text-amber-500 border border-amber-100'
+                                : 'bg-sky-50 text-sky-500 border border-sky-100'
+                      }`}>
+                        {isManual ? <PenLine size={9} /> : <ScanSearch size={9} />}
+                      </span>
+                      <div className="font-bold text-[13px] text-slate-800 truncate">
+                        {isLinkedFromProcess ? sys.collected_data : sys.system_name}
+                      </div>
                     </div>
-                    <div className="text-[12px] text-slate-500 font-medium truncate mt-0.5">
-                      {sys.system_name}
-                    </div>
-
-                    {isLinkedFromProcess && (
-                      <div className="mt-1.5 flex items-center gap-1">
-                        <GitBranch size={10} className="text-emerald-500 shrink-0" />
-                        <span className="text-[11px] text-emerald-700 font-semibold truncate">
-                          {sys.collected_data}
-                        </span>
+                    {!isLinkedFromProcess && (
+                      <div className="text-[11px] text-slate-400 truncate pl-5">
+                        {website?.url?.replace(/^https?:\/\//, '') ?? '—'}
                       </div>
                     )}
                   </div>
 
-                  {/* Kezelt adatok */}
+                  {/* 2. Kezelt adatok */}
                   <div className="min-w-0 pt-0.5">
-                    {isLinkedFromProcess ? (
-                      sys.purpose?.trim() ? (
-                        <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
-                          {sys.purpose}
-                        </div>
-                      ) : (
-                        <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
-                      )
+                    {sys.collected_data?.trim() && !isLinkedFromProcess ? (
+                      <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug">{sys.collected_data}</div>
+                    ) : isLinkedFromProcess ? (
+                      <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug">{sys.collected_data}</div>
                     ) : (
-                      sys.collected_data?.trim() ? (
-                        <div className="text-[13px] font-medium text-slate-600 line-clamp-3 leading-snug">
-                          {sys.collected_data}
-                        </div>
-                      ) : (
-                        <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
-                      )
+                      <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
                     )}
                   </div>
 
-                  {/* Forrás */}
+                  {/* 3. Adatkezelés célja */}
+                  <div className="min-w-0 pt-0.5">
+                    {sys.purpose?.trim() ? (
+                      <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug">{sys.purpose}</div>
+                    ) : (
+                      <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
+                    )}
+                  </div>
+
+                  {/* 5. Megőrzési idő */}
                   <div className="pt-0.5">
+                    <RetentionEditor
+                      id={sys.id}
+                      value={sys.retention_period ?? retentionDisplay ?? retentionLabel ?? null}
+                    />
+                  </div>
+
+                  {/* 6. Forrás + Szervezeti egység */}
+                  <div className="pt-0.5 space-y-1">
                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold truncate max-w-full inline-block">
                       {website
                         ? website.status === 'offline'
@@ -245,22 +225,15 @@ export default async function SystemsPage(props: {
                           : website.url.replace(/^https?:\/\//, '')
                         : 'Ismeretlen forrás'}
                     </span>
+                    {isLinkedFromProcess && sys.department_name && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Building2 size={10} className="text-slate-400 shrink-0" />
+                        <span className="text-[11px] text-slate-500 font-medium truncate">{sys.department_name}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Megőrzési idő */}
-                  <div className="pt-0.5">
-                    <RetentionEditor
-                      id={sys.id}
-                      value={
-                        sys.retention_period ??
-                        retentionDisplay ??
-                        retentionLabel ??
-                        null
-                      }
-                    />
-                  </div>
-
-                  {/* Státusz */}
+                  {/* 7. Státusz */}
                   <div className="pt-0.5">
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
@@ -275,7 +248,7 @@ export default async function SystemsPage(props: {
                     )}
                   </div>
 
-                  {/* Műveletek */}
+                  {/* 8. Műveletek */}
                   <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
                     {isPending && <AcceptSystemButton id={sys.id} />}
                     <DeleteConfirmDialog
