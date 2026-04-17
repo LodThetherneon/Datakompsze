@@ -118,7 +118,9 @@ export default async function DataRegistryPage(props: {
             </div>
           ) : (
             processes.map((proc) => {
-              const linkedWebsiteIds: string[] = (proc.process_system_links ?? []).map((l: any) => l.system_id)
+              const linkedWebsiteIds: string[] = (proc.process_system_links ?? [])
+                .map((l: any) => l.systems?.website_id)
+                .filter(Boolean)
               const linkedWebsites = allWebsites.filter((w) => linkedWebsiteIds.includes(w.id))
 
               const createdAt = new Intl.DateTimeFormat('hu-HU', {
