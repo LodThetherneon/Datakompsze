@@ -115,7 +115,7 @@ export function SystemDetailDialog({ sys, website, updateAction, processName }: 
                   <span className={`w-1.5 h-1.5 rounded-full ${
                     sys.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
                   }`} />
-                  {sys.status === 'active' ? 'Elfogadva' : 'Jóváhagyásra vár'}
+                  {sys.status === 'active' ? 'Elfogadva' : 'Jóváhagyandó'}
                 </span>
               </div>
             </div>

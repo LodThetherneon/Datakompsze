@@ -150,6 +150,20 @@ export async function generatePolicy(formData: FormData) {
   const { data: systems } = await supabase
     .from('systems').select('*').eq('website_id', websiteId).eq('status', 'active')
 
+  const { data: dataProcesses } = await supabase
+  .from('data_processes')
+  .select('*')
+  .eq('company_id', company.id)
+
+  const processRows = (dataProcesses || []).map((p: any) => ({
+    system_name:      p.process_name,
+    purpose:          p.purpose,
+    collected_data:   p.collected_data,
+    retention_until:  null,
+    retention_period: p.retention_period,
+    source_type:      'process',
+  }))
+
   const siteName = website.status === 'offline'
     ? website.url
     : website.url.replace(/^https?:\/\//, '')
@@ -184,7 +198,7 @@ export async function generatePolicy(formData: FormData) {
   })
   const formSystems   = allSystems.filter((s: any) => s.system_name?.includes('Webes űrlap'))
   const manualSystems = allSystems.filter((s: any) => s.source_type === 'manual' || s.source_type === 'process')
-  const allRows       = [...manualSystems, ...formSystems, ...thirdParties]
+  const allRows = [manualSystems, formSystems, thirdParties, processRows]
   const hasCookies    = cookieSystems.length > 0
 
   function legalBasis(s: any): string {
@@ -719,10 +733,12 @@ export async function updateSystem(formData: FormData) {
   const { error } = await supabase
     .from('systems')
     .update({
-      system_name:    (formData.get('system_name')    as string)?.trim() || undefined,
-      purpose:        (formData.get('purpose')         as string)?.trim() || undefined,
-      collected_data: (formData.get('collected_data')  as string)?.trim() || undefined,
-      retention_period: (formData.get('retention_period') as string)?.trim() || undefined,
+      system_name:      (formData.get('system_name')      as string)?.trim() || undefined,
+      purpose:          (formData.get('purpose')           as string)?.trim() || undefined,
+      collected_data:   (formData.get('collected_data')    as string)?.trim() || undefined,
+      retention_period: (formData.get('retention_period')  as string)?.trim() || undefined,
+      storage_location: (formData.get('storage_location')  as string)?.trim() || undefined,
+      department_name:  (formData.get('department_name')   as string)?.trim() || undefined,
     })
     .eq('id', id)
   if (error) throw error

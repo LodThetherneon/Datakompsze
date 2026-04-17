@@ -249,7 +249,7 @@ export default async function SystemsPage(props: {
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        Jóváhagyásra vár
+                        Jóváhagyandó
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-bold shadow-sm">
