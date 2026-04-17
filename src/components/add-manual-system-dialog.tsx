@@ -1,19 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Database, FileText, Clock } from "lucide-react"
+import { Plus, Database, FileText, Clock, Target } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/toast-provider"
-import {
-  Dialog, DialogContent, DialogDescription,
-  DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+import {Dialog, DialogContent, DialogDescription,DialogHeader, DialogTitle, DialogTrigger,} from "@/components/ui/dialog"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
+
 
 interface Website {
   id: string
@@ -108,11 +103,12 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
     }
   }
 
-  const isValid =
-    !!selectedWebsiteId &&  // ÚJ
+    const isValid =
+    !!selectedWebsiteId &&
     !!selectedCategory &&
     (selectedCategory !== "__custom__" || !!customCategory.trim()) &&
     !!retentionValue && parseInt(retentionValue, 10) > 0
+  // (a purpose mező required attribútuma elvégzi a validációt automatikusan)
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true) }}>
@@ -124,7 +120,7 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
         Új adattípus felvitele
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[500px] rounded-2xl p-6 border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] bg-white">
+      <DialogContent className="sm:max-w-[500px] rounded-2xl p-6 border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4">
             <Database className="text-emerald-600" size={24} />
@@ -204,6 +200,23 @@ export function AddManualSystemDialog({ addAction, existingSystems }: AddManualS
                 name="collectedData"
                 placeholder="Pl.: Ügyfelek e-mail címe hírlevél küldéséhez."
                 className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 min-h-[90px] resize-none"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Adatkezelés célja */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+              <Target size={12} />
+              Adatkezelés célja
+            </label>
+            <div className="relative">
+              <Target className="absolute left-3 top-3 text-slate-400" size={16} />
+              <Textarea
+                name="purpose"
+                placeholder="Pl.: Hírlevél küldése az ügyfelek részére."
+                className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 min-h-[80px] resize-none"
                 required
               />
             </div>

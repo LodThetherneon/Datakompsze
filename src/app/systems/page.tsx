@@ -1,4 +1,4 @@
-import { Search, Clock, HardDrive, Target, Building2 } from 'lucide-react'
+import { Search, Clock, Target } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { addManualSystem, deleteSystem } from '@/app/actions'
@@ -9,9 +9,10 @@ import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
 import { RetentionEditor } from '@/components/retention-editor'
 import { AcceptSystemButton } from '@/components/accept-system-button'
-import { PenLine, ScanSearch, Tag, Database, Globe, CheckCircle2, GitBranch, Settings2 } from 'lucide-react'
+import { PenLine, ScanSearch, Tag, Database, CheckCircle2, GitBranch, Settings2 } from 'lucide-react'
 import { SystemDetailDialog } from '@/components/system-detail-dialog'
 import { updateSystem } from '@/app/actions'
+import { SystemActionsCell } from '@/components/system-actions-cell'
 
 export default async function SystemsPage(props: {
   searchParams: Promise<{ filter?: string; q?: string; source?: string; source_type?: string }>
@@ -25,9 +26,11 @@ export default async function SystemsPage(props: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let systems: any[]  = []
-  let websites: any[] = []
-  let pendingCount    = 0
+  let systems: any[]      = []
+  let websites: any[]     = []
+  let processes: any[]    = []
+  let processLinks: any[] = []
+  let pendingCount        = 0
 
   if (user) {
     const { data: company } = await supabase
@@ -67,6 +70,21 @@ export default async function SystemsPage(props: {
 
         const { data: sysData } = await query
         if (sysData) systems = sysData
+
+        // Folyamatok és linkek lekérése
+        if (systems.some(s => s.source_type === 'process')) {
+          const { data: procData } = await supabase
+            .from('data_processes')
+            .select('id, process_name')
+            .eq('company_id', company.id)
+          if (procData) processes = procData
+
+          const { data: linkData } = await supabase
+            .from('process_system_links')
+            .select('process_id, system_id')
+            .in('system_id', websiteIds)
+          if (linkData) processLinks = linkData
+        }
       }
     }
   }
@@ -114,7 +132,7 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1fr_6rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1.2fr_6rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Tag size={11} /> Kategória / Folyamat</div>
           <div className="flex items-center gap-1.5"><Database size={11} /> Kezelt adatok</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
@@ -144,6 +162,13 @@ export default async function SystemsPage(props: {
               const isManual  = sys.source_type === 'manual'
               const isLinkedFromProcess = sys.source_type === 'process'
 
+              const linkedProcess = isLinkedFromProcess
+                ? (() => {
+                    const link = processLinks.find(l => l.system_id === sys.website_id)
+                    return link ? processes.find(p => p.id === link.process_id) : null
+                  })()
+                : null
+
               let retentionLabel: string | null = null
               if (isManual && sys.retention_until) {
                 const parts = String(sys.retention_until).split('-').map(Number)
@@ -163,16 +188,16 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
+                  className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1.2fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
 
                   <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
-                  
+
                   {/* 1. Kategória / Folyamat neve */}
                   <div className="min-w-0 pt-0.5">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className={`inline-flex items-center justify-center w-4 h-4 rounded shrink-0 ${
                         isManual ? 'bg-amber-50 text-amber-500 border border-amber-100'
-                                : 'bg-sky-50 text-sky-500 border border-sky-100'
+                                 : 'bg-sky-50 text-sky-500 border border-sky-100'
                       }`}>
                         {isManual ? <PenLine size={9} /> : <ScanSearch size={9} />}
                       </span>
@@ -180,11 +205,11 @@ export default async function SystemsPage(props: {
                         {sys.system_name}
                       </div>
                     </div>
-                    {isLinkedFromProcess && sys.collected_data && (
+                    {isLinkedFromProcess && linkedProcess && (
                       <div className="flex items-center gap-1 pl-5 mt-0.5">
                         <GitBranch size={9} className="text-emerald-500 shrink-0" />
                         <span className="text-[11px] text-emerald-700 font-semibold truncate">
-                          {sys.collected_data}
+                          {linkedProcess.process_name}
                         </span>
                       </div>
                     )}
@@ -192,9 +217,7 @@ export default async function SystemsPage(props: {
 
                   {/* 2. Kezelt adatok */}
                   <div className="min-w-0 pt-0.5">
-                    {sys.collected_data?.trim() && !isLinkedFromProcess ? (
-                      <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug">{sys.collected_data}</div>
-                    ) : isLinkedFromProcess ? (
+                    {sys.collected_data?.trim() ? (
                       <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug">{sys.collected_data}</div>
                     ) : (
                       <span className="text-[13px] text-slate-300 italic">Nincs megadva</span>
@@ -210,7 +233,7 @@ export default async function SystemsPage(props: {
                     )}
                   </div>
 
-                  {/* 5. Megőrzési idő */}
+                  {/* 4. Megőrzési idő */}
                   <div className="pt-0.5">
                     <RetentionEditor
                       id={sys.id}
@@ -218,24 +241,7 @@ export default async function SystemsPage(props: {
                     />
                   </div>
 
-                  {/* 6. Forrás + Szervezeti egység */}
-                  <div className="pt-0.5 space-y-1">
-                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold truncate max-w-full inline-block">
-                      {website
-                        ? website.status === 'offline'
-                          ? website.url
-                          : website.url.replace(/^https?:\/\//, '')
-                        : 'Ismeretlen forrás'}
-                    </span>
-                    {isLinkedFromProcess && sys.department_name && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Building2 size={10} className="text-slate-400 shrink-0" />
-                        <span className="text-[11px] text-slate-500 font-medium truncate">{sys.department_name}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 7. Státusz */}
+                  {/* 5. Státusz */}
                   <div className="pt-0.5">
                     {isPending ? (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-bold shadow-sm">
@@ -250,8 +256,8 @@ export default async function SystemsPage(props: {
                     )}
                   </div>
 
-                  {/* 8. Műveletek */}
-                  <div className="flex justify-end items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+                  {/* 6. Műveletek */}
+                  <SystemActionsCell>
                     {isPending && <AcceptSystemButton id={sys.id} />}
                     <DeleteConfirmDialog
                       id={sys.id}
@@ -260,7 +266,7 @@ export default async function SystemsPage(props: {
                       simpleConfirm={true}
                       deleteAction={deleteSystem}
                     />
-                  </div>
+                  </SystemActionsCell>
                 </div>
               )
             })

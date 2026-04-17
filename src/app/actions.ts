@@ -93,7 +93,7 @@ export async function addManualSystem(formData: FormData) {
     company_id:        company.id,
     website_id:        websiteId,
     system_name:       dataTypeCat,
-    purpose:           dataTypeCat,
+    purpose: (formData.get('purpose') as string)?.trim() || dataTypeCat,
     collected_data:    collectedData,
     status:            'active',
     source_type:       (formData.get('sourceType') as string) || 'manual',
