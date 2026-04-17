@@ -114,12 +114,11 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[1.6fr_1.6fr_1.6fr_1fr_1fr_1.2fr_1fr_7rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1fr_6rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Tag size={11} /> Kategória / Folyamat</div>
           <div className="flex items-center gap-1.5"><Database size={11} /> Kezelt adatok</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
-          <div className="flex items-center gap-1.5"><HardDrive size={11} /> Megőrzési hely</div>
-          <div className="flex items-center gap-1.5"><Globe size={11} /> Forrás / Szervezeti egység</div>
+          <div className="flex items-center gap-1.5"><Clock size={11} /> Megőrzési idő</div>
           <div className="flex items-center gap-1.5"><CheckCircle2 size={11} /> Státusz</div>
           <div className="flex items-center justify-end gap-1.5 pr-4"><Settings2 size={11} /> Műveletek</div>
         </div>
@@ -164,7 +163,7 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[1.6fr_1.6fr_1.6fr_1fr_1fr_1fr_1.2fr_7rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
+                  className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
 
                   <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
                   
@@ -178,12 +177,15 @@ export default async function SystemsPage(props: {
                         {isManual ? <PenLine size={9} /> : <ScanSearch size={9} />}
                       </span>
                       <div className="font-bold text-[13px] text-slate-800 truncate">
-                        {isLinkedFromProcess ? sys.collected_data : sys.system_name}
+                        {sys.system_name}
                       </div>
                     </div>
-                    {!isLinkedFromProcess && (
-                      <div className="text-[11px] text-slate-400 truncate pl-5">
-                        {website?.url?.replace(/^https?:\/\//, '') ?? '—'}
+                    {isLinkedFromProcess && sys.collected_data && (
+                      <div className="flex items-center gap-1 pl-5 mt-0.5">
+                        <GitBranch size={9} className="text-emerald-500 shrink-0" />
+                        <span className="text-[11px] text-emerald-700 font-semibold truncate">
+                          {sys.collected_data}
+                        </span>
                       </div>
                     )}
                   </div>
