@@ -189,7 +189,7 @@ export default async function SystemsPage(props: {
                   key={sys.id}
                   className="grid grid-cols-[2fr_1.6fr_2fr_1.1fr_1.2fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
 
-                  <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
+                  <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} processName={linkedProcess?.process_name ?? null}/>
 
                   {/* 1. Kategória / Folyamat neve */}
                   <div className="min-w-0 pt-0.5">

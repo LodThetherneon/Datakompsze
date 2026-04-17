@@ -243,3 +243,20 @@ export async function deleteDepartment(formData: FormData) {
   if (error) throw error
   revalidatePath('/data-registry')
 }
+
+export async function updateDataProcess(formData: FormData) {
+  const supabase = await createClient()
+  const id = formData.get('id') as string
+
+  const { error } = await supabase.from('data_processes').update({
+    department_name: formData.get('department_name') as string,
+    process_name: formData.get('process_name') as string,
+    purpose: formData.get('purpose') as string,
+    collected_data: formData.get('collected_data') as string,
+    retention_period: formData.get('retention_period') as string,
+    storage_location: formData.get('storage_location') as string,
+  }).eq('id', id)
+
+  if (error) throw error
+  revalidatePath('/data-registry')
+}

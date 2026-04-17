@@ -1,15 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
-import {
-  addDataProcess, deleteDataProcess,
-  linkWebsiteToProcess, unlinkWebsiteFromProcess,
-  addDepartment, deleteDepartment
-} from './actions'
+import { addDataProcess, deleteDataProcess, linkWebsiteToProcess, unlinkWebsiteFromProcess, addDepartment, deleteDepartment, updateDataProcess } from './actions'
+import { ProcessDetailDialog } from '@/components/process-detail-dialog'
 import { AddProcessDialog } from '@/components/add-process-dialog'
 import { DeleteProcessButton } from '@/components/delete-process-button'
 import { LinkWebsiteDialog } from '@/components/link-website-dialog'
 import { ManageDepartmentsDialog } from '@/components/manage-departments-dialog'
 import { SearchBar } from '@/components/search-bar'
 import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2, Database } from 'lucide-react'
+import { SystemActionsCell } from '@/components/system-actions-cell'
 
 
 export default async function DataRegistryPage(props: {
@@ -130,7 +128,12 @@ export default async function DataRegistryPage(props: {
               return (
                 <div
                   key={proc.id}
-                  className="grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
+                  className="relative grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
+                    <ProcessDetailDialog
+                      proc={proc}
+                      linkedWebsites={linkedWebsites}
+                      updateAction={updateDataProcess}
+                    />
                   {/* Szervezeti egység + dátum + csatolt weboldalak */}
                   <div className="min-w-0">
                     <div className="font-bold text-[13px] text-slate-800 truncate">
@@ -178,7 +181,7 @@ export default async function DataRegistryPage(props: {
                   </div>
 
                   {/* Műveletek */}
-                  <div className="flex justify-end items-center gap-1 pr-1 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+                  <SystemActionsCell>
                     <LinkWebsiteDialog
                       processId={proc.id}
                       allWebsites={allWebsites}
@@ -191,7 +194,7 @@ export default async function DataRegistryPage(props: {
                       processName={proc.process_name}
                       deleteAction={deleteDataProcess}
                     />
-                  </div>
+                  </SystemActionsCell>
                 </div>
               )
             })
