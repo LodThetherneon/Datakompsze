@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Search, PenLine } from "lucide-react";
 
 // --- ACTIONS ---
-import { addConnection, deleteWebsite, refreshAllPolicies, rescanWebsite } from "./actions";
+import { addConnection, deleteWebsite, rescanWebsite } from "./actions";
 import Link from "next/link";
 
 // --- COMPONENTS ---
@@ -10,6 +10,7 @@ import { AddConnectionDialog } from "@/components/add-connection-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { RealtimeRefresher } from '@/components/realtime-refresher';
 import { RescanDialog } from '@/components/rescan-dialog';
+import { RefreshAllPoliciesButton } from '@/components/refresh-button-dashboard'
 
 function formatDate(dateString: string | null) {
   if (!dateString) return "Még nem generált";
@@ -197,14 +198,7 @@ export default async function Home() {
           </div>
           <div className="flex flex-col gap-2">
             <RescanDialog websites={websites} rescanAction={rescanWebsite} />
-            <form action={refreshAllPolicies}>
-              <button
-                type="submit"
-                className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold h-11 shadow-sm rounded-xl text-[13px] transition-colors"
-              >
-                Dokumentumok frissítése
-              </button>
-            </form>
+            <RefreshAllPoliciesButton />
           </div>
         </div>
 
