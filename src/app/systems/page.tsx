@@ -7,7 +7,6 @@ import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { SearchBar } from '@/components/search-bar'
 import { AcceptAllButton } from '@/components/accept-all-button'
 import { SourceTypeFilter } from '@/components/source-type-filter'
-import { RetentionEditor } from '@/components/retention-editor'
 import { AcceptSystemButton } from '@/components/accept-system-button'
 import { PenLine, ScanSearch, Tag, Database, CheckCircle2, GitBranch, Settings2 } from 'lucide-react'
 import { SystemDetailDialog } from '@/components/system-detail-dialog'
@@ -132,7 +131,7 @@ export default async function SystemsPage(props: {
         </div>
 
         {/* Táblázat fejléc */}
-        <div className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1.2fr_6rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[2fr_1.6fr_1.9fr_1.1fr_1.2fr_6rem] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Tag size={11} /> Kategória / Folyamat</div>
           <div className="flex items-center gap-1.5"><Database size={11} /> Kezelt adatok</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
@@ -188,7 +187,7 @@ export default async function SystemsPage(props: {
               return (
                 <div
                   key={sys.id}
-                  className="grid grid-cols-[2fr_1.6fr_2fr_1fr_1.2fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
+                  className="grid grid-cols-[2fr_1.6fr_2fr_1.1fr_1.2fr_6rem] gap-4 px-5 py-5 items-start hover:bg-slate-50/80 transition-colors group relative">
 
                   <SystemDetailDialog sys={sys} website={website} updateAction={updateSystem} />
 
@@ -197,7 +196,7 @@ export default async function SystemsPage(props: {
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className={`inline-flex items-center justify-center w-4 h-4 rounded shrink-0 ${
                         isManual ? 'bg-amber-50 text-amber-500 border border-amber-100'
-                                 : 'bg-sky-50 text-sky-500 border border-sky-100'
+                                : 'bg-sky-50 text-sky-500 border border-sky-100'
                       }`}>
                         {isManual ? <PenLine size={9} /> : <ScanSearch size={9} />}
                       </span>
@@ -205,6 +204,11 @@ export default async function SystemsPage(props: {
                         {sys.system_name}
                       </div>
                     </div>
+                    {!isLinkedFromProcess && (
+                      <div className="text-[11px] text-slate-400 truncate pl-5">
+                        {website?.url?.replace(/^https?:\/\//, '') ?? '—'}
+                      </div>
+                    )}
                     {isLinkedFromProcess && linkedProcess && (
                       <div className="flex items-center gap-1 pl-5 mt-0.5">
                         <GitBranch size={9} className="text-emerald-500 shrink-0" />
@@ -235,10 +239,9 @@ export default async function SystemsPage(props: {
 
                   {/* 4. Megőrzési idő */}
                   <div className="pt-0.5">
-                    <RetentionEditor
-                      id={sys.id}
-                      value={sys.retention_period ?? retentionDisplay ?? retentionLabel ?? null}
-                    />
+                    <span className="text-[13px] text-slate-600">
+                      {sys.retention_period ?? retentionDisplay ?? retentionLabel ?? <span className="text-slate-300">—</span>}
+                    </span>
                   </div>
 
                   {/* 5. Státusz */}

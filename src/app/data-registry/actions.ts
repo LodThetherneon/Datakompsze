@@ -17,6 +17,7 @@ export async function addDataProcess(formData: FormData) {
     department_name: formData.get('department_name') as string,
     process_name: formData.get('process_name') as string,
     purpose: formData.get('purpose') as string,
+    collected_data: formData.get('collected_data') as string,
     retention_period: formData.get('retention_period') as string,
     storage_location: formData.get('storage_location') as string,
   }])
@@ -97,7 +98,7 @@ export async function linkWebsiteToProcess(formData: FormData) {
   // 1. Folyamat adatainak lekérése
   const { data: process } = await supabase
     .from('data_processes')
-    .select('process_name, purpose, retention_period, storage_location, department_name')
+    .select('process_name, purpose, retention_period, storage_location, department_name, collected_data')
     .eq('id', process_id)
     .single()
 
@@ -129,11 +130,12 @@ export async function linkWebsiteToProcess(formData: FormData) {
     const { error: sysError } = await supabase.from('systems').insert([{
       website_id,
       system_name: systemName,
-      purpose: process.purpose || process.process_name,
-      collected_data: process.process_name,
+      purpose: process.purpose || null,
+      collected_data: process.collected_data || null,
       status: 'active',
-      source_type: 'manual',
+      source_type: 'process',
       retention_display: process.retention_period || null,
+      retention_period: process.retention_period || null,
       storage_location: process.storage_location || null,
       department_name: process.department_name || null,
     }])

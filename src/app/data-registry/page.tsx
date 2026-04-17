@@ -9,7 +9,7 @@ import { DeleteProcessButton } from '@/components/delete-process-button'
 import { LinkWebsiteDialog } from '@/components/link-website-dialog'
 import { ManageDepartmentsDialog } from '@/components/manage-departments-dialog'
 import { SearchBar } from '@/components/search-bar'
-import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2 } from 'lucide-react'
+import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2, Database } from 'lucide-react'
 
 
 export default async function DataRegistryPage(props: {
@@ -95,12 +95,13 @@ export default async function DataRegistryPage(props: {
         </div>
 
         {/* Fejléc – 6 egyenletes oszlop ikonokkal */}
-        <div className="grid grid-cols-[1.2fr_1.4fr_2fr_1fr_1fr_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
-          <div className="flex items-center gap-1.5 w-full"><Tag size={11} /> Folyamat neve</div>
+          <div className="flex items-center gap-1.5"><Tag size={11} /> Folyamat neve</div>
+          <div className="flex items-center gap-1.5"><Database size={11} /> Kezelt adatok</div>
           <div className="flex items-center gap-1.5"><Target size={11} /> Adatkezelés célja</div>
           <div className="flex items-center gap-1.5"><Clock size={11} /> Megőrzési idő</div>
-          <div className="flex items-center gap-1.5"><HardDrive size={11} /> Tárolás helye</div>
+          <div className="flex items-center gap-1.5"><HardDrive size={11} /> Helye</div>
           <div className="flex items-center justify-end gap-1.5 pr-2"><Settings2 size={11} className="shrink-0" /> Műveletek</div>
         </div>
 
@@ -129,7 +130,7 @@ export default async function DataRegistryPage(props: {
               return (
                 <div
                   key={proc.id}
-                  className="grid grid-cols-[1.2fr_1.4fr_2fr_1fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
+                  className="grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
                   {/* Szervezeti egység + dátum + csatolt weboldalak */}
                   <div className="min-w-0">
                     <div className="font-bold text-[13px] text-slate-800 truncate">
@@ -154,6 +155,11 @@ export default async function DataRegistryPage(props: {
                   {/* Folyamat neve */}
                   <div className="font-semibold text-[13px] text-slate-700 line-clamp-2 leading-snug pt-0.5">
                     {proc.process_name}
+                  </div>
+
+                  {/* Kezelt adatok */}
+                  <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug pt-0.5">
+                    {proc.collected_data || <span className="text-slate-300 italic">Nincs megadva</span>}
                   </div>
 
                   {/* Adatkezelés célja */}

@@ -259,7 +259,7 @@ export function AddProcessDialog({
           )}
         />
 
-        <DialogContent className="sm:max-w-[520px] rounded-2xl p-6 border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] bg-white">
+        <DialogContent className="sm:max-w-[520px] rounded-2xl p-6 border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] bg-white max-h-[90vh] overflow-y-auto">
 
           {/* ── Confirm overlay: ismeretlen szervezeti egység ── */}
           {confirmNewDept ? (
@@ -353,6 +353,19 @@ export function AddProcessDialog({
                   <datalist id="processes-list">
                     {knownProcessNames.map((p) => <option key={p} value={p} />)}
                   </datalist>
+                </div>
+
+                {/* Kezelt adatok */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    Kezelt adatok
+                  </label>
+                  <Textarea
+                    name="collected_data"
+                    required
+                    placeholder="Pl.: Név, születési dátum, lakcím, TAJ szám..."
+                    className="bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 min-h-[80px] resize-none text-[14px]"
+                  />
                 </div>
 
                 {/* Cél */}
