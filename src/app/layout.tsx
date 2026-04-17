@@ -82,13 +82,13 @@ export default async function RootLayout({
 
               {/* Logó */}
               <div className="h-[72px] flex items-center px-6 border-b border-slate-50">
-                <div className="flex items-center gap-3">
+                <Link href="/" className="flex items-center gap-3">
                   <img
                     src="/szelogo.png"
                     alt="Széchenyi István Egyetem"
                     className="h-17 w-auto object-contain"
                   />
-                </div>
+                </Link>
               </div>
 
             {/* Csomag blokk — ideiglenesen inaktív

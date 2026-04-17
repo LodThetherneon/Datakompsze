@@ -4,6 +4,7 @@ import { FileText, Clock, Filter, RotateCcw, RefreshCw, Trash2, Sparkles, Chevro
 import { PolicyDownloadButtons } from '@/components/policy-download-buttons'
 import { GeneratePolicyForm } from '@/components/generate-policy-form'
 import { DeleteProcessButton } from '@/components/delete-process-button'
+import { RefreshPolicyButton } from '@/components/refresh-policy-button'
 
 function formatDate(d: string | null) {
   if (!d) return "—";
@@ -209,20 +210,10 @@ export default async function PoliciesPage({
                       policyId={policy.id}
                       version={policy.version}
                     />
-                    <form action={async () => {
-                      'use server'
-                      const { generatePolicy } = await import('@/app/actions')
-                      const fd = new FormData()
-                      fd.set('websiteId', policy.website_id)
-                      await generatePolicy(fd)
-                    }}>
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 transition-colors"
-                      >
-                        <RefreshCw size={13} /> Frissítés
-                      </button>
-                    </form>
+                    <RefreshPolicyButton
+                      websiteId={policy.website_id}
+                      siteName={siteName}
+                    />
                     <DeleteProcessButton
                       id={policy.id}
                       processName={`${siteName} – v${policy.version} tájékoztató`}

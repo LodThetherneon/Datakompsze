@@ -154,6 +154,7 @@ export async function generatePolicy(formData: FormData) {
   .from('data_processes')
   .select('*')
   .eq('company_id', company.id)
+  .eq('website_id', websiteId)
 
   const processRows = (dataProcesses || []).map((p: any) => ({
     system_name:      p.process_name,
@@ -198,7 +199,7 @@ export async function generatePolicy(formData: FormData) {
   })
   const formSystems   = allSystems.filter((s: any) => s.system_name?.includes('Webes űrlap'))
   const manualSystems = allSystems.filter((s: any) => s.source_type === 'manual' || s.source_type === 'process')
-  const allRows = [manualSystems, formSystems, thirdParties, processRows]
+  const allRows = [...manualSystems, ...formSystems, ...thirdParties, ...processRows]
   const hasCookies    = cookieSystems.length > 0
 
   function legalBasis(s: any): string {
@@ -250,7 +251,7 @@ export async function generatePolicy(formData: FormData) {
   // ─── CSS ──────────────────────────────────────────────────────────────────
   const css = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #c8c8c8; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }
+    html, body { background: #ececec; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }
     .document  { width: ${PAGE_W}px; margin: 30px auto; }
     .page {
       position: relative; width: ${PAGE_W}px; height: ${PAGE_H}px;
