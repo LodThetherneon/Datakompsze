@@ -146,9 +146,9 @@ export default async function RootLayout({
                   <GlobalSearch />
 
                   <div className="flex items-center gap-5 ml-auto">
-                    <button className="text-slate-400 hover:text-slate-700 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100">
+                    <Link href="/help" className="text-slate-400 hover:text-slate-700 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100">
                       <HelpCircle size={20} />
-                    </button>
+                    </Link>
 
                     <button className="relative text-slate-400 hover:text-slate-700 transition-colors w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100">
                       <Bell size={20} />
@@ -199,7 +199,7 @@ export default async function RootLayout({
                       <div className="flex gap-8 font-medium">
                         <a href="#" className="hover:text-emerald-600 transition-colors">Adatvédelmi tájékoztató</a>
                         <a href="#" className="hover:text-emerald-600 transition-colors">Általános Szerződési Feltételek</a>
-                        <a href="#" className="hover:text-emerald-600 transition-colors">Súgóközpont</a>
+                        <Link href="/help" className="hover:text-emerald-600 transition-colors">Súgóközpont</Link>
                       </div>
                     </div>
                   </footer>

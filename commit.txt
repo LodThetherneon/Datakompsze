@@ -1,6 +1,6 @@
 git add .
 git commit -m "Teljesítmény javítás és scan refresh"
-git push origin main
+git push backup main
 
 
 
