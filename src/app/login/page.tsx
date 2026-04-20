@@ -11,46 +11,41 @@ export default async function LoginPage({
   const tab = params.tab ?? 'login';
 
   return (
-    <div className="h-screen flex bg-[#193A47] font-sans overflow-hidden">
+    <div className="min-h-screen flex font-sans overflow-hidden">
 
-      {/* Háttér geometria */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Zöld glow bal felül */}
-        <div className="absolute -top-60 -left-60 w-[2500px] h-[500px] rounded-full bg-emerald-400/20 blur-[200px]" />
-        {/* Sötét zöld glow jobb alul */}
-        <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full bg-emerald-700/8 blur-[100px]" />
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-      </div>
+      {/* Bal oldal — zöldes branding */}
+      <div className="hidden lg:flex flex-col justify-between w-[60%] p-16 pl-20 relative bg-emerald-600 overflow-hidden">
 
-      {/* Bal oldal — branding */}
-      <div className="hidden lg:flex flex-col justify-between w-[60%] p-15 pl-30 relative">
+        {/* Háttér rétegek */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-emerald-500/40 blur-[120px]" />
+          <div className="absolute -bottom-40 right-0 w-[500px] h-[500px] rounded-full bg-emerald-800/50 blur-[100px]" />
+          <div className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)`,
+              backgroundSize: '36px 36px'
+            }}
+          />
+        </div>
 
         {/* Logo */}
-        <div className="flex items-center gap-3">
+        <div className="relative z-10 flex items-center gap-3">
           <img
             src="/szelogo-removebg-preview.png"
             alt="Széchenyi István Egyetem"
-            className="h-22 w-auto object-contain"
-            style={{ mixBlendMode: 'multiply' }}
+            className="h-28 w-auto object-contain brightness-0 invert opacity-90"
           />
         </div>
 
         {/* Közép tartalom */}
-        <div className="max-w-3xl pl-2">
-      
-          <h1 className="text-5xl font-black text-white leading-tight mb-5 tracking-tight">
-            Adatvagyont & Adatvédelmet<br />
-            <span className="text-emerald-400"> kezelő rendszer </span>
+        <div className="relative z-10 max-w-2xl">
+          <h1 className="text-[46px] font-black text-white leading-[1.1] mb-5 tracking-tight">
+            Adatvagyont & Adatvédelmet{' '}
+            <span className="text-emerald-200">kezelő rendszer</span>
           </h1>
 
-          <p className="text-white/80 text-[15px] leading-relaxed mb-10">
-            Kezelje az adatvédelmi kötelezettségeit, adatvagyonát egyetlen platformon. 
+          <p className="text-emerald-100/80 text-[15px] leading-relaxed mb-10 [max-width:none]">
+            Kezelje az adatvédelmi kötelezettségeit, adatvagyonát egyetlen platformon.
           </p>
 
           {/* Feature kártyák */}
@@ -59,49 +54,54 @@ export default async function LoginPage({
               { icon: Map, label: 'Adattérkép', desc: 'Adatvagyon adatbázis' },
               { icon: FileText, label: 'Tájékoztatók', desc: 'Generálás egy kattintással' },
               { icon: Lock, label: 'Adatkezelések', desc: 'Folyamatos megfelelőség' },
-              { icon: ShieldCheck, label: 'Integráció', desc: 'Meglévő rendszerekhez, folyamatokhoz' },
+              { icon: ShieldCheck, label: 'Integráció', desc: 'Meglévő rendszerekhez' },
             ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-3 p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl hover:bg-white/[0.05] transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Icon size={15} className="text-emerald-400" />
+              <div key={label} className="flex items-start gap-3 p-4 bg-white/10 border border-white/20 rounded-2xl hover:bg-white/15 transition-colors backdrop-blur-sm">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon size={15} className="text-white" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-bold text-white/80">{label}</div>
-                  <div className="text-[11px] text-white/30 mt-0.5">{desc}</div>
+                  <div className="text-[13px] font-bold text-white">{label}</div>
+                  <div className="text-[11px] text-emerald-100/60 mt-0.5">{desc}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-white/80 text-[12px] mt-8">© 2026 Széchenyi István Egyetem. Minden jog fenntartva.</p>
+        <p className="relative z-10 text-emerald-100/50 text-[12px]">
+          © 2026 Széchenyi István Egyetem. Minden jog fenntartva.
+        </p>
       </div>
 
-      {/* Jobb oldal — form panel */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+      {/* Jobb oldal — form panel, fehér */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-white relative">
 
-        {/* Panel */}
-        <div className="w-full max-w-[420px]">
+        {/* Éles bal oldali árnyék/elválasztás */}
+        <div className="hidden lg:block absolute left-0 inset-y-0 w-px bg-emerald-700/30" />
+        <div className="hidden lg:block absolute left-0 inset-y-0 w-8 bg-gradient-to-r from-emerald-900/5 to-transparent" />
+
+        <div className="w-full max-w-[390px]">
 
           {/* Mobil logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center">
-              <ShieldCheck size={20} className="text-white" />
+          <div className="lg:hidden flex items-center gap-2.5 mb-10 justify-center">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <ShieldCheck size={18} className="text-white" />
             </div>
-            <span className="text-xl font-bold text-white">Data<span className="text-emerald-400">Komp</span></span>
+            <span className="text-xl font-black text-slate-800">Data<span className="text-emerald-500">Komp</span></span>
           </div>
 
           {/* Form kártya */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl shadow-black/40">
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-200/60">
             <LoginForm initialTab={tab} error={error} />
           </div>
 
           {/* Lábléc */}
-          <p className="text-center text-[11px] text-white/80 mt-6">
+          <p className="text-center text-[11px] text-slate-400 mt-5">
             A belépéssel elfogadod az{' '}
-            <a href="#" className="text-white/80 hover:text-white/90 underline underline-offset-2 transition-colors">Adatvédelmi tájékoztatót</a>
+            <a href="#" className="text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors">Adatvédelmi tájékoztatót</a>
             {' '}és az{' '}
-            <a href="#" className="text-white/80 hover:text-white/90 underline underline-offset-2 transition-colors">ÁSZF-et</a>.
+            <a href="#" className="text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors">ÁSZF-et</a>.
           </p>
         </div>
       </div>
