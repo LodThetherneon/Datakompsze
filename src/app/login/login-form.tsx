@@ -60,7 +60,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
       {/* Fejléc */}
       <div className="mb-7">
         <h2 className="text-[22px] font-black text-slate-800 tracking-tight">
-          {tab === 'login' ? 'Üdvözöljük vissza' : 'Hozzon létre fiókot'}
+          {tab === 'login' ? 'Üdvözöljük újra' : 'Hozzon létre fiókot'}
         </h2>
         <p className="text-[13px] text-slate-400 mt-1">
           {tab === 'login' ? 'Jelentkezzen be fiókjába' : 'Regisztráljon ingyenesen'}
@@ -113,9 +113,9 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
           <p className="text-center text-[12px] text-slate-400 pt-1">
-            Még nincs fiókod?{' '}
+            Még nincs fiókja?{' '}
             <button type="button" onClick={() => setTab('register')} className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors">
-              Regisztrálj ingyen
+              Regisztráljon ingyen
             </button>
           </p>
         </form>

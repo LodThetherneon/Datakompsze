@@ -1,5 +1,5 @@
 git add .
-git commit -m "Táblázatok fix"
+git commit -m "Új kezdőoldal"
 git push origin main
 
 

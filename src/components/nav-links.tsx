@@ -7,7 +7,6 @@ import { LayoutDashboard, FileText, Database, Settings, Building2, FolderKanban 
 const navItems = [
   { href: '/', label: 'Irányítópult', icon: LayoutDashboard },
   { href: '/systems', label: 'Kezelt adattípusok', icon: Database },
-  // Új menüpont hozzáadása:
   { href: '/data-registry', label: 'Folyamatnyilvántartás', icon: FolderKanban },
   { href: '/policies', label: 'Tájékoztatók', icon: FileText },
   { href: '/company', label: 'Cégadatok', icon: Building2 },
