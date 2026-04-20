@@ -111,7 +111,7 @@ export function LinkWebsiteDialog({ processId, allWebsites, linkedWebsiteIds, li
                     }`}
                   >
                     {loadingId === w.id ? '...' : isLinked
-                      ? <><Unlink size={12} /> Leválasztás</>
+                      ? <><Unlink size={12} /> Leválaszt</>
                       : <><Link2 size={12} /> Csatolás</>
                     }
                   </button>

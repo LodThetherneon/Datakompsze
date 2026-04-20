@@ -166,11 +166,16 @@ export async function unlinkWebsiteFromProcess(formData: FormData) {
 
   // 2. systems.id megkeresése a website_id alapján
   const { data: sysRow } = await supabase
-    .from('systems')
-    .select('id')
-    .eq('website_id', website_id)
-    .eq('collected_data', process?.process_name ?? '')
-    .maybeSingle()
+  .from('systems')
+  .select('id')
+  .eq('website_id', website_id)
+  .in('id', (await supabase
+    .from('process_system_links')
+    .select('system_id')
+    .eq('process_id', process_id)
+    .then(r => (r.data ?? []).map((x: any) => x.system_id))
+  ))
+  .maybeSingle()
 
   if (!sysRow) {
     // Ha nincs systems sor, csak a linket próbáljuk törölni ha létezik
