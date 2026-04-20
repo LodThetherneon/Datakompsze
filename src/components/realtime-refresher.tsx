@@ -13,9 +13,8 @@ export function RealtimeRefresher() {
   useEffect(() => {
     const supabase = createClient()
 
-    // Polling függvény — csak akkor indul el, ha a Realtime nem érhető el
     const startPolling = () => {
-      if (pollingRef.current) return // már fut
+      if (pollingRef.current) return
       pollingRef.current = setInterval(async () => {
         const { data } = await supabase
           .from('websites')
@@ -31,7 +30,7 @@ export function RealtimeRefresher() {
           wasScanning.current = false
           router.refresh()
         }
-      }, 10000) // 10 másodperc
+      }, 3000) // 10s → 3s
     }
 
     const stopPolling = () => {
@@ -41,30 +40,46 @@ export function RealtimeRefresher() {
       }
     }
 
-    // Realtime csatorna — fő frissítési mechanizmus
-    const channel = supabase
+    // Websites változás figyelése (státusz: scanning → active)
+    const websitesChannel = supabase
       .channel('websites-changes')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'websites' },
-        () => {
-          router.refresh()
+        (payload) => {
+          // Csak akkor refresh ha scanning → active átmenet történt
+          if (payload.old?.status === 'scanning' && payload.new?.status !== 'scanning') {
+            router.refresh()
+          } else {
+            router.refresh()
+          }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          // Realtime él — lehetne polling-ot leállítani, de a scanning-figyelest megőrizzük
           realtimeActiveRef.current = true
-          stopPolling() // ha előzőleg futott fallback, leállítjuk
+          stopPolling()
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          // Realtime nem elérhető — fallback polling indul
           realtimeActiveRef.current = false
           startPolling()
         }
       })
 
+    // Systems tábla figyelése — új scan eredmény azonnal triggereli a refresht
+    const systemsChannel = supabase
+      .channel('systems-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'systems' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(websitesChannel)
+      supabase.removeChannel(systemsChannel)
       stopPolling()
     }
   }, [router])

@@ -1,5 +1,5 @@
 git add .
-git commit -m "Új kezdőoldal"
+git commit -m "Teljesítmény javítás és scan refresh"
 git push origin main
 
 
