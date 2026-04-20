@@ -44,7 +44,7 @@ export default async function DataRegistryPage(props: {
 
       let query = supabase
         .from('data_processes')
-        .select('*, process_system_links(system_id)')
+        .select('*, process_system_links(system_id, systems(id, website_id))')
         .eq('company_id', company.id)
         .order('created_at', { ascending: false })
 
@@ -56,6 +56,21 @@ export default async function DataRegistryPage(props: {
 
       const { data } = await query
       processes = data ?? []
+
+      const allSystemIds = processes.flatMap(p =>
+      (p.process_system_links ?? []).map((l: any) => l.system_id)
+    ).filter(Boolean)
+
+    let systemWebsiteMap: Record<string, string> = {}
+    if (allSystemIds.length > 0) {
+      const { data: sysData } = await supabase
+        .from('systems')
+        .select('id, website_id')
+        .in('id', allSystemIds)
+      if (sysData) {
+        sysData.forEach(s => { systemWebsiteMap[s.id] = s.website_id })
+      }
+    }
     }
   }
 

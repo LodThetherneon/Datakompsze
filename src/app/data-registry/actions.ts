@@ -67,11 +67,10 @@ export async function deleteDataProcess(formData: FormData) {
       // 3. Csak akkor töröljük a systems sort, ha más nem hivatkozik rá
       if (!stillUsed) {
         await supabase
-          .from('systems')
-          .delete()
-          .eq('website_id', link.system_id)
-          .eq('collected_data', process.process_name)
-          .eq('source_type', 'manual')
+        .from('systems')
+        .delete()
+        .eq('id', link.system_id)          // ← .eq('id', ...) nem website_id!
+        .eq('source_type', 'process')  
       }
     }
   }
@@ -165,18 +164,28 @@ export async function unlinkWebsiteFromProcess(formData: FormData) {
     .eq('id', process_id)
     .single()
 
-  // 2. Van-e MÁS folyamat ugyanehhez a website_id-hoz ugyanilyen névvel?
-  if (process) {
+  // 2. systems.id megkeresése a website_id alapján
+  const { data: sysRow } = await supabase
+    .from('systems')
+    .select('id')
+    .eq('website_id', website_id)
+    .eq('collected_data', process?.process_name ?? '')
+    .maybeSingle()
+
+  if (!sysRow) {
+    // Ha nincs systems sor, csak a linket próbáljuk törölni ha létezik
+  } else {
+    // 3. Van-e MÁS folyamat ugyanehhez a systems sorhoz?
     const { data: otherLinks } = await supabase
       .from('process_system_links')
       .select('process_id')
-      .eq('system_id', website_id)
+      .eq('system_id', sysRow.id)
       .neq('process_id', process_id)
 
     const otherProcessIds = (otherLinks ?? []).map((l) => l.process_id)
-
     let stillUsed = false
-    if (otherProcessIds.length > 0) {
+
+    if (otherProcessIds.length > 0 && process) {
       const { data: otherProcesses } = await supabase
         .from('data_processes')
         .select('process_name')
@@ -186,23 +195,23 @@ export async function unlinkWebsiteFromProcess(formData: FormData) {
       if (otherProcesses && otherProcesses.length > 0) stillUsed = true
     }
 
+    // 4. Systems sor törlése ha senki más nem használja
     if (!stillUsed) {
       await supabase
         .from('systems')
         .delete()
-        .eq('website_id', website_id)
-        .eq('collected_data', process.process_name)
-        .eq('source_type', 'manual')
+        .eq('id', sysRow.id)
+        .eq('source_type', 'process')  // ← 'process', nem 'manual'!
     }
-  }
 
-  // 3. Link törlése
-  const { error } = await supabase
-    .from('process_system_links')
-    .delete()
-    .eq('process_id', process_id)
-    .eq('system_id', website_id)
-  if (error) throw error
+    // 5. Link törlése a helyes system_id-vel (sysRow.id, nem website_id!)
+    const { error } = await supabase
+      .from('process_system_links')
+      .delete()
+      .eq('process_id', process_id)
+      .eq('system_id', sysRow.id)  // ← sysRow.id, nem website_id!
+    if (error) throw error
+  }
 
   revalidatePath('/data-registry')
   revalidatePath('/systems')
