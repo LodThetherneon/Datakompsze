@@ -27,7 +27,7 @@ export function AcceptAllButton({ pendingCount }: { pendingCount: number }) {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-gray-700 hover:bg-gray-600 border border-slate-900 text-white text-[13px] font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-200 border border-slate-900 text-gray-800 text-[12px] font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-sm"
     >
       {loading ? (
         <Loader2 size={14} className="animate-spin" />
