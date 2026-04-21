@@ -41,8 +41,6 @@ export async function signup(formData: FormData) {
     name: email.split('@')[0],
     plan: plan,
   })
-
-  revalidatePath('/', 'layout')
   redirect('/')
 }
 
