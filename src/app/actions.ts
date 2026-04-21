@@ -6,13 +6,19 @@ import { runScanner } from '@/lib/scanner'
 import fs from 'fs'
 import path from 'path'
 
+// ─── Module-szintű cache: csak egyszer olvassa be a fájlt ─────────────────────
+let _szechenyiBgCache: string | null = null
+
 function getSzechenyiBg(): string {
+  if (_szechenyiBgCache !== null) return _szechenyiBgCache
   try {
     const imgPath = path.join(process.cwd(), 'public', 'szechenyi-bg.png')
     if (fs.existsSync(imgPath)) {
-      return `data:image/png;base64,${fs.readFileSync(imgPath).toString('base64')}`
+      _szechenyiBgCache = `data:image/png;base64,${fs.readFileSync(imgPath).toString('base64')}`
+      return _szechenyiBgCache
     }
   } catch {}
+  _szechenyiBgCache = ''
   return ''
 }
 
@@ -21,13 +27,15 @@ export async function addConnection(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
+  // ─── FIX: csak EGY company lekérdezés kell, a companyFull.id elegendő ───────
   const { data: companyFull } = await supabase
     .from('companies').select('id, plan').eq('user_id', user.id).single()
+  if (!companyFull) throw new Error("Nincs cégadat beállítva!")
 
   const { count: currentCount } = await supabase
     .from('websites')
     .select('id', { count: 'exact', head: true })
-    .eq('company_id', companyFull!.id)
+    .eq('company_id', companyFull.id)
 
   const quotaMap: Record<string, number | null> = { free: 3, pro: 30, max: null }
   const quota = quotaMap[companyFull?.plan ?? 'free']
@@ -36,10 +44,6 @@ export async function addConnection(formData: FormData) {
     throw new Error(`Elérted a ${companyFull?.plan} csomag kvótáját (${quota} db). Válts magasabb csomagra!`)
   }
 
-  const { data: company } = await supabase
-    .from('companies').select('id').eq('user_id', user.id).single()
-  if (!company) throw new Error("Nincs cégadat beállítva!")
-
   const mode = formData.get('mode') as 'link' | 'manual'
 
   if (mode === 'link') {
@@ -47,14 +51,14 @@ export async function addConnection(formData: FormData) {
     const cleanUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
     const { data: newSite, error } = await supabase
       .from('websites')
-      .insert([{ company_id: company.id, url: cleanUrl, status: 'scanning' }])
+      .insert([{ company_id: companyFull.id, url: cleanUrl, status: 'scanning' }])
       .select().single()
     if (error || !newSite) throw error
     runScanner(newSite.id, cleanUrl).catch(err => console.error('Scanner hiba:', err))
   } else if (mode === 'manual') {
     const name = formData.get('name') as string
     const { error } = await supabase.from('websites').insert([{
-      company_id: company.id, url: name, status: 'offline'
+      company_id: companyFull.id, url: name, status: 'offline'
     }])
     if (error) throw error
   }
@@ -677,11 +681,14 @@ export async function refreshAllPolicies() {
 
   if (!websites || websites.length === 0) return
 
-  for (const site of websites) {
-    const fd = new FormData()
-    fd.set('websiteId', site.id)
-    await generatePolicy(fd)
-  }
+  // ─── FIX: párhuzamos generálás szekvenciális helyett ──────────────────────
+  await Promise.allSettled(
+    websites.map(site => {
+      const fd = new FormData()
+      fd.set('websiteId', site.id)
+      return generatePolicy(fd)
+    })
+  )
 
   revalidatePath('/')
   revalidatePath('/policies')
