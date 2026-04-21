@@ -6,20 +6,24 @@ import { DeleteProcessButton } from '@/components/delete-process-button'
 import { LinkWebsiteDialog } from '@/components/link-website-dialog'
 import { ManageDepartmentsDialog } from '@/components/manage-departments-dialog'
 import { SearchBar } from '@/components/search-bar'
-import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2, Database } from 'lucide-react'
+import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2, Database, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SystemActionsCell } from '@/components/system-actions-cell'
+import Link from 'next/link'
 
+const PAGE_SIZE = 20
 
 export default async function DataRegistryPage(props: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; page?: string }>
 }) {
   const searchParams = await props.searchParams
   const searchQuery = searchParams.q || ''
+  const currentPage = Math.max(1, parseInt(searchParams.page || '1'))
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   let processes: any[] = []
+  let totalCount = 0
   let allWebsites: any[] = []
   let departments: any[] = []
 
@@ -42,11 +46,26 @@ export default async function DataRegistryPage(props: {
         .order('name', { ascending: true })
       departments = deptData ?? []
 
+      // Összes elem száma a lapozóhoz
+      let countQuery = supabase
+        .from('data_processes')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', company.id)
+      if (searchQuery) {
+        countQuery = countQuery.or(
+          `department_name.ilike.%${searchQuery}%,process_name.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%`
+        )
+      }
+      const { count } = await countQuery
+      totalCount = count ?? 0
+
+      // Lapozott lekérdezés
       let query = supabase
         .from('data_processes')
         .select('*, process_system_links(system_id, systems(id, website_id))')
         .eq('company_id', company.id)
         .order('created_at', { ascending: false })
+        .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1)
 
       if (searchQuery) {
         query = query.or(
@@ -58,23 +77,46 @@ export default async function DataRegistryPage(props: {
       processes = data ?? []
 
       const allSystemIds = processes.flatMap(p =>
-      (p.process_system_links ?? []).map((l: any) => l.system_id)
-    ).filter(Boolean)
+        (p.process_system_links ?? []).map((l: any) => l.system_id)
+      ).filter(Boolean)
 
-    let systemWebsiteMap: Record<string, string> = {}
-    if (allSystemIds.length > 0) {
-      const { data: sysData } = await supabase
-        .from('systems')
-        .select('id, website_id')
-        .in('id', allSystemIds)
-      if (sysData) {
-        sysData.forEach(s => { systemWebsiteMap[s.id] = s.website_id })
+      if (allSystemIds.length > 0) {
+        const { data: sysData } = await supabase
+          .from('systems')
+          .select('id, website_id')
+          .in('id', allSystemIds)
+        // systemWebsiteMap ha kell
       }
-    }
     }
   }
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
   const knownProcessNames = [...new Set(processes.map((p) => p.process_name))]
+
+  // Lapozó URL builder – megőrzi a keresést
+  function pageUrl(page: number) {
+    const params = new URLSearchParams()
+    if (searchQuery) params.set('q', searchQuery)
+    params.set('page', String(page))
+    return `/data-registry?${params.toString()}`
+  }
+
+  // Oldalszámok generálása (max 5 látható)
+  function getPageNumbers() {
+    const pages: (number | '...')[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      if (currentPage > 3) pages.push('...')
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i)
+      }
+      if (currentPage < totalPages - 2) pages.push('...')
+      pages.push(totalPages)
+    }
+    return pages
+  }
 
   return (
     <div className="w-full h-full flex flex-col space-y-8 font-sans">
@@ -107,7 +149,6 @@ export default async function DataRegistryPage(props: {
           <SearchBar defaultValue={searchQuery} />
         </div>
 
-        {/* Fejléc – 6 egyenletes oszlop ikonokkal */}
         <div className="grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1.5"><Building2 size={11} /> Szervezeti egység</div>
           <div className="flex items-center gap-1.5"><Tag size={11} /> Folyamat neve</div>
@@ -146,12 +187,11 @@ export default async function DataRegistryPage(props: {
                 <div
                   key={proc.id}
                   className="relative grid grid-cols-[1.2fr_1.4fr_1.4fr_1.8fr_1.2fr_1fr_72px] gap-4 px-5 py-4 items-start hover:bg-slate-50/80 transition-colors group">
-                    <ProcessDetailDialog
-                      proc={proc}
-                      linkedWebsites={linkedWebsites}
-                      updateAction={updateDataProcess}
-                    />
-                  {/* Szervezeti egység + dátum + csatolt weboldalak */}
+                  <ProcessDetailDialog
+                    proc={proc}
+                    linkedWebsites={linkedWebsites}
+                    updateAction={updateDataProcess}
+                  />
                   <div className="min-w-0">
                     <div className="font-bold text-[13px] text-slate-800 truncate">
                       {proc.department_name}
@@ -171,33 +211,21 @@ export default async function DataRegistryPage(props: {
                       </div>
                     )}
                   </div>
-
-                  {/* Folyamat neve */}
                   <div className="font-semibold text-[13px] text-slate-700 line-clamp-2 leading-snug pt-0.5">
                     {proc.process_name}
                   </div>
-
-                  {/* Kezelt adatok */}
                   <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug pt-0.5">
                     {proc.collected_data || <span className="text-slate-300 italic">Nincs megadva</span>}
                   </div>
-
-                  {/* Adatkezelés célja */}
                   <div className="text-[13px] text-slate-600 line-clamp-3 leading-snug pt-0.5">
                     {proc.purpose || '—'}
                   </div>
-
-                  {/* Megőrzési idő */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.retention_period}>
                     {proc.retention_period || '—'}
                   </div>
-
-                  {/* Tárolás helye */}
                   <div className="text-[13px] text-slate-600 truncate pt-0.5" title={proc.storage_location}>
                     {proc.storage_location || '—'}
                   </div>
-
-                  {/* Műveletek */}
                   <SystemActionsCell>
                     <LinkWebsiteDialog
                       processId={proc.id}
@@ -217,6 +245,64 @@ export default async function DataRegistryPage(props: {
             })
           )}
         </div>
+
+        {/* ── Lapozó ── */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50/30">
+            <p className="text-[12px] text-slate-400 font-medium">
+              {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)} / {totalCount} folyamat
+            </p>
+            <div className="flex items-center gap-1">
+              {/* Előző */}
+              {currentPage > 1 ? (
+                <Link
+                  href={pageUrl(currentPage - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:border-emerald-300 hover:text-emerald-600 transition-all"
+                >
+                  <ChevronLeft size={15} />
+                </Link>
+              ) : (
+                <span className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed">
+                  <ChevronLeft size={15} />
+                </span>
+              )}
+
+              {/* Oldalszámok */}
+              {getPageNumbers().map((p, i) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-400 text-[13px]">…</span>
+                ) : (
+                  <Link
+                    key={p}
+                    href={pageUrl(p as number)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[13px] font-semibold transition-all border ${
+                      p === currentPage
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:bg-white hover:border-emerald-300 hover:text-emerald-600'
+                    }`}
+                  >
+                    {p}
+                  </Link>
+                )
+              )}
+
+              {/* Következő */}
+              {currentPage < totalPages ? (
+                <Link
+                  href={pageUrl(currentPage + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-white hover:border-emerald-300 hover:text-emerald-600 transition-all"
+                >
+                  <ChevronRight size={15} />
+                </Link>
+              ) : (
+                <span className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed">
+                  <ChevronRight size={15} />
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
       </section>
     </div>
   )

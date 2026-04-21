@@ -1,5 +1,5 @@
 git add .
-git commit -m "Teljesítmény javítás és scan refresh és FAQ"
+git commit -m "Lapozó beépítése"
 git push backup main
 
 
