@@ -1,5 +1,5 @@
 git add .
-git commit -m "Teljesítmény javítás és scan refresh"
+git commit -m "Teljesítmény javítás és scan refresh és FAQ"
 git push backup main
 
 

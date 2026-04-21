@@ -45,13 +45,7 @@ export default async function SystemsPage(props: {
         websites = webData
         const websiteIds = webData.map((w) => w.id)
 
-        const { count } = await supabase
-          .from('systems')
-          .select('*', { count: 'exact', head: true })
-          .in('website_id', websiteIds)
-          .eq('status', 'pending')
-        pendingCount = count ?? 0
-
+        // Felépítjük a szűrt lekérdezést
         let query = supabase
           .from('systems')
           .select('*')
@@ -67,23 +61,33 @@ export default async function SystemsPage(props: {
           )
         }
 
-        const { data: sysData } = await query
+        // ✅ pendingCount + systems lekérdezés egyszerre fut
+        const [{ count }, { data: sysData }] = await Promise.all([
+          supabase
+            .from('systems')
+            .select('*', { count: 'exact', head: true })
+            .in('website_id', websiteIds)
+            .eq('status', 'pending'),
+          query
+        ])
+        pendingCount = count ?? 0
         if (sysData) systems = sysData
 
-        // Folyamatok és linkek lekérése
+        // ✅ processes + processLinks egyszerre fut (csak ha kell)
         if (systems.some(s => s.source_type === 'process')) {
-          const { data: procData } = await supabase
-            .from('data_processes')
-            .select('id, process_name')
-            .eq('company_id', company.id)
+          const systemIds = systems.map(s => s.id)
+
+          const [{ data: procData }, { data: linkData }] = await Promise.all([
+            supabase
+              .from('data_processes')
+              .select('id, process_name')
+              .eq('company_id', company.id),
+            supabase
+              .from('process_system_links')
+              .select('process_id, system_id')
+              .in('system_id', systemIds)
+          ])
           if (procData) processes = procData
-
-          const systemIds = systems.map(s => s.id)  
-
-          const { data: linkData } = await supabase
-            .from('process_system_links')
-            .select('process_id, system_id')
-            .in('system_id', systemIds)
           if (linkData) processLinks = linkData
         }
       }

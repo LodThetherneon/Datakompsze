@@ -35,10 +35,11 @@ export default async function Home() {
     if (company) companyId = company.id;
   }
 
-  // 3. VALÓS ADATOK LEKÉRDEZÉSE
+  // 3. ADATOK LEKÉRDEZÉSE – websites először, majd systems + policies egyszerre
   let websites: any[] = [];
   let systems: any[] = [];
   let pendingSystems = 0;
+  let hasGeneratedPolicy = false;
 
   if (companyId) {
     const { data: webData } = await supabase
@@ -48,24 +49,23 @@ export default async function Home() {
 
     if (websites.length > 0) {
       const websiteIds = websites.map(w => w.id);
-      const { data: sysData } = await supabase
-        .from('systems').select('*').in('website_id', websiteIds);
+
+      // ✅ systems és policies egyszerre fut – ~150ms spórolás
+      const [{ data: sysData }, policyResult] = await Promise.all([
+        supabase.from('systems').select('*').in('website_id', websiteIds),
+        supabase
+          .from('policies')
+          .select('id', { count: 'exact', head: true })
+          .in('website_id', websiteIds)
+      ]);
+
       if (sysData) {
         systems = sysData;
         pendingSystems = systems.filter(s => s.status === 'pending').length;
       }
+      hasGeneratedPolicy = (policyResult.count ?? 0) > 0;
     }
   }
-
-  // POLICIES LEKÉRDEZÉSE
-  const policyResult = companyId && websites.length > 0
-    ? await supabase
-        .from('policies')
-        .select('id', { count: 'exact', head: true })
-        .in('website_id', websites.map(w => w.id))
-    : { count: 0 };
-
-  const hasGeneratedPolicy = (policyResult.count ?? 0) > 0;
 
   // 4. STATISZTIKÁK
   const totalSources = websites.length;
