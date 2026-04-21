@@ -254,15 +254,44 @@ export async function updateDataProcess(formData: FormData) {
   const supabase = await createClient()
   const id = formData.get('id') as string
 
-  const { error } = await supabase.from('data_processes').update({
-    department_name: formData.get('department_name') as string,
-    process_name: formData.get('process_name') as string,
-    purpose: formData.get('purpose') as string,
-    collected_data: formData.get('collected_data') as string,
+  const updates = {
+    department_name:  formData.get('department_name')  as string,
+    process_name:     formData.get('process_name')     as string,
+    purpose:          formData.get('purpose')           as string,
+    collected_data:   formData.get('collected_data')   as string,
     retention_period: formData.get('retention_period') as string,
     storage_location: formData.get('storage_location') as string,
-  }).eq('id', id)
+  }
 
+  // 1. data_processes frissítése (eredeti)
+  const { error } = await supabase
+    .from('data_processes')
+    .update(updates)
+    .eq('id', id)
   if (error) throw error
+
+  // 2. Csatolt systems sorok frissítése is
+  const { data: links } = await supabase
+    .from('process_system_links')
+    .select('system_id')
+    .eq('process_id', id)
+
+  if (links && links.length > 0) {
+    const systemIds = links.map((l: any) => l.system_id)
+    await supabase
+      .from('systems')
+      .update({
+        purpose:          updates.purpose          || undefined,
+        collected_data:   updates.collected_data   || undefined,
+        retention_period: updates.retention_period || undefined,
+        retention_display:updates.retention_period || undefined,
+        storage_location: updates.storage_location || undefined,
+        department_name:  updates.department_name  || undefined,
+      })
+      .in('id', systemIds)
+      .eq('source_type', 'process')
+  }
+
   revalidatePath('/data-registry')
+  revalidatePath('/systems')  // ← ezt is hozzá kell adni!
 }
