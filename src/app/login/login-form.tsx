@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { login, signup } from './actions'
-import { Check, Eye, EyeOff, ArrowRight, Shield } from 'lucide-react'
+import { Check, Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 const PLANS = [
   {
@@ -42,6 +42,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
   const [localError, setLocalError] = useState(error ?? '')
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleNext = () => {
     if (!email || !password) { setLocalError('Add meg az email címed és jelszavad!'); return }
@@ -53,6 +54,10 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
 
   const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 outline-none transition-all"
   const labelClass = "block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2"
+
+  const Spinner = () => (
+    <span className="w-4 h-4 border-[3px] border-emerald-300 border-t-white rounded-full animate-spin inline-block" />
+  )
 
   return (
     <div className="w-full">
@@ -71,12 +76,14 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
       <div className="flex bg-slate-100 p-1 rounded-xl mb-7">
         <button
           onClick={() => { setTab('login'); setStep(1); setLocalError('') }}
+          disabled={isPending}
           className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${tab === 'login' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
         >
           Bejelentkezés
         </button>
         <button
           onClick={() => { setTab('register'); setStep(1); setLocalError('') }}
+          disabled={isPending}
           className={`flex-1 py-2 text-[13px] font-bold rounded-lg transition-all ${tab === 'register' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
         >
           Regisztráció
@@ -95,26 +102,64 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
         <form className="space-y-4">
           <div>
             <label className={labelClass}>Email cím</label>
-            <input name="email" type="email" required placeholder="adatvedelem@sze.hu" className={inputClass} />
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="adatvedelem@sze.hu"
+              className={inputClass}
+              disabled={isPending}
+            />
           </div>
           <div>
             <label className={labelClass}>Jelszó</label>
             <div className="relative">
-              <input name="password" type={showPass ? 'text' : 'password'} required placeholder="••••••••" className={inputClass + ' pr-11'} />
-              <button type="button" onClick={() => setShowPass(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+              <input
+                name="password"
+                type={showPass ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                className={inputClass + ' pr-11'}
+                disabled={isPending}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
-          <button formAction={login}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group">
-            Belépés
-            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={(e) => {
+              const form = (e.currentTarget as HTMLElement).closest('form') as HTMLFormElement
+              const formData = new FormData(form)
+              startTransition(() => { login(formData) })
+            }}
+            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group"
+          >
+            {isPending ? (
+              <>
+                <Spinner />
+                Belépés folyamatban...
+              </>
+            ) : (
+              <>
+                Belépés
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </>
+            )}
           </button>
           <p className="text-center text-[12px] text-slate-400 pt-1">
             Még nincs fiókja?{' '}
-            <button type="button" onClick={() => setTab('register')} className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors">
+            <button
+              type="button"
+              onClick={() => setTab('register')}
+              className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors"
+            >
               Regisztráljon ingyen
             </button>
           </p>
@@ -124,7 +169,6 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
       {/* ===== REGISZTRÁCIÓ — 1. lépés ===== */}
       {tab === 'register' && step === 1 && (
         <div className="space-y-4">
-          {/* Lépésjelző */}
           <div className="flex items-center gap-2 mb-6">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center shadow-sm shadow-emerald-200">1</div>
@@ -177,15 +221,10 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
 
       {/* ===== REGISZTRÁCIÓ — 2. lépés ===== */}
       {tab === 'register' && step === 2 && (
-        <form action={signup} className="space-y-3">
-          <input type="hidden" name="email" value={email} />
-          <input type="hidden" name="password" value={password} />
-          <input type="hidden" name="plan" value={selectedPlan} />
-
-          {/* Lépésjelző */}
+        <div className="space-y-3">
           <div className="flex items-center gap-2 mb-5">
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setStep(1)} className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[11px] font-bold flex items-center justify-center hover:bg-emerald-100 transition-colors">1</button>
+              <button type="button" onClick={() => setStep(1)} disabled={isPending} className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-[11px] font-bold flex items-center justify-center hover:bg-emerald-100 transition-colors">1</button>
               <span className="text-[12px] font-medium text-slate-400">Fiók adatok</span>
             </div>
             <div className="flex-1 h-px bg-emerald-200 mx-1"></div>
@@ -199,12 +238,17 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
 
           <div className="flex flex-col gap-2">
             {PLANS.map(plan => (
-              <button key={plan.id} type="button" onClick={() => setSelectedPlan(plan.id)}
+              <button
+                key={plan.id}
+                type="button"
+                disabled={isPending}
+                onClick={() => setSelectedPlan(plan.id)}
                 className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
                   selectedPlan === plan.id
                     ? 'border-emerald-400 bg-emerald-50 shadow-sm'
                     : 'border-slate-200 hover:border-slate-300 bg-slate-50'
-                }`}>
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedPlan === plan.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'}`}>
                     {selectedPlan === plan.id && <Check size={10} className="text-white" />}
@@ -225,12 +269,31 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             ))}
           </div>
 
-          <button type="submit"
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 group mt-1">
-            Regisztráció & Kezdés
-            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              const formData = new FormData()
+              formData.set('email', email)
+              formData.set('password', password)
+              formData.set('plan', selectedPlan)
+              startTransition(() => { signup(formData) })
+            }}
+            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 group mt-1"
+          >
+            {isPending ? (
+              <>
+                <Spinner />
+                Regisztráció folyamatban...
+              </>
+            ) : (
+              <>
+                Regisztráció & Kezdés
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </>
+            )}
           </button>
-        </form>
+        </div>
       )}
     </div>
   )
