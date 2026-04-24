@@ -23,22 +23,27 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Lekérdezzük a bejelentkezett felhasználót
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
 
-  // Ha NINCS bejelentkezve, és nem a login oldalon van, akkor kidobjuk!
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  const isLoginPage      = pathname === '/login'
+  const isAdminLoginPage = pathname.startsWith('/admin/login')
+  const isAnyLoginPage   = isLoginPage || isAdminLoginPage
+
+  // Nincs session + nem login oldal → /login
+  if (!user && !isAnyLoginPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Ha BE VAN jelentkezve, de a login oldalra téved, bedobjuk az irányítópultra!
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  // Van session + sima /login → / (a proxy majd kezeli ha admin)
+  if (user && isLoginPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
+  // Minden más eset (beleértve /admin/login-t) → mehet tovább, proxy kezeli
   return supabaseResponse
 }
