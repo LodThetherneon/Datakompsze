@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
   const isAdminPage      = pathname.startsWith('/admin') && !isAdminLoginPage
   const isUserLoginPage  = pathname === '/login'
 
+  // Ha egyik sem érintett, nem kell role ellenőrzés
   if (!isAdminLoginPage && !isAdminPage && !isUserLoginPage) {
     return sessionResponse
   }
@@ -45,11 +46,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (isAdmin && isUserLoginPage)   return redirect('/admin/login')
-  if (isAdmin && isAdminLoginPage)  return redirect('/admin')
-  if (!isAdmin && isAdminLoginPage) return redirect('/login')
-  if (!isAdmin && isAdminPage)      return redirect('/')
+  // Admin → sima /login-ra ment → /admin/login-ra
+  if (isAdmin && isUserLoginPage)    return redirect('/admin/login')
+  // Sima user → /admin/login-ra ment → /login
+  if (!isAdmin && isAdminLoginPage)  return redirect('/login')
+  // Sima user → /admin oldalra ment → /
+  if (!isAdmin && isAdminPage)       return redirect('/')
 
+  // Admin + /admin/login vagy /admin → mehet, az action/page kezeli
   return sessionResponse
 }
 
