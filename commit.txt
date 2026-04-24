@@ -1,5 +1,5 @@
 git add .
-git commit -m "Csomagok teljes kiszedése"
+git commit -m "Admin oldal"
 git push backup main
 
 

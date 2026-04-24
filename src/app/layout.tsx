@@ -101,6 +101,10 @@ export default async function RootLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const userInitials = user?.email ? user.email.substring(0, 2).toUpperCase() : "DK";
+  const { data: myProfile } = user
+  ? await supabase.from('profiles').select('role').eq('id', user.id).single()
+  : { data: null }
+  const myRole = myProfile?.role ?? 'user'
 
   return (
     <html lang="hu">
@@ -126,7 +130,7 @@ export default async function RootLayout({
                   </Link>
                 </div>
 
-                <NavLinks />
+                <NavLinks role={myRole} />
 
                 {/*}
                 <Suspense fallback={<QuotaSkeleton />}>
