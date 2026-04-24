@@ -4,18 +4,28 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
+const ADMIN_ROLES = ['superadmin', 'admin', 'admin_reader']
+
 export async function login(formData: FormData) {
   const supabase = await createClient()
-  
+
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
-  if (error) {
+  if (error || !authData.user) {
     redirect('/login?error=Hibás+email+vagy+jelszó')
+  }
+
+  const { data: roleRow } = await supabase
+    .from('user_roles').select('role').eq('id', authData.user.id).single()
+
+  if (ADMIN_ROLES.includes(roleRow?.role ?? '')) {
+    await supabase.auth.signOut()
+    redirect('/admin/login?error=forbidden')
   }
 
   revalidatePath('/', 'layout')
@@ -34,7 +44,6 @@ export async function signup(formData: FormData) {
     redirect('/login?error=Hiba+a+regisztráció+során')
   }
 
-  // Company létrehozása (plan nélkül, alapértelmezett free marad az oszlop default-ja)
   await supabase.from('companies').insert({
     user_id: data.user.id,
     name: email.split('@')[0],
