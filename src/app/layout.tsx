@@ -128,11 +128,11 @@ export default async function RootLayout({
 
                 <NavLinks />
 
-                {/* Kvóta — Suspense-be csomagolva, nem blokkolja az oldalt */}
+                {/*}
                 <Suspense fallback={<QuotaSkeleton />}>
                   <SidebarQuota userId={user.id} />
                 </Suspense>
-
+                */}
               </aside>
             )}
 

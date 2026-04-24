@@ -19,7 +19,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/') // Sikeres belépés után irányítópult
+  redirect('/')
 }
 
 export async function signup(formData: FormData) {
@@ -27,7 +27,6 @@ export async function signup(formData: FormData) {
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const plan = (formData.get('plan') as string) || 'free'
 
   const { data, error } = await supabase.auth.signUp({ email, password })
 
@@ -35,12 +34,12 @@ export async function signup(formData: FormData) {
     redirect('/login?error=Hiba+a+regisztráció+során')
   }
 
-  // Company létrehozása a választott csomaggal
+  // Company létrehozása (plan nélkül, alapértelmezett free marad az oszlop default-ja)
   await supabase.from('companies').insert({
     user_id: data.user.id,
     name: email.split('@')[0],
-    plan: plan,
   })
+
   redirect('/')
 }
 

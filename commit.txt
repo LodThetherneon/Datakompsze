@@ -1,23 +1,7 @@
 git add .
-git commit -m "Lapozó beépítése, és login javítás"
+git commit -m "Csomagok teljes kiszedése"
 git push backup main
 
 
 
 git pull origin main
-
-
-
-Supabase limitek:
-
-500mb adat
-50.000 aktív felhasználó/hó
-Shibbouleth lehetséges egyetemi szerveren de kell hozzá Pro Supabase csomag vagy esetleg megoldható egy saját middleware-val ami hitelesítés után JWT tokent ad ki a Supabase-nek.
-
-
-SMTP:
-
-Resend:
-
-Havi 3000 mail
-Napi 100 mail

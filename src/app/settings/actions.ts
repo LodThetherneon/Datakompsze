@@ -49,7 +49,7 @@ export async function saveCompanySettings(formData: FormData) {
   // Frissítjük az oldalt, hogy látszódjanak az új adatok
   revalidatePath('/settings')
 }
-
+{/*}
 export async function changePlan(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -65,7 +65,7 @@ export async function changePlan(formData: FormData) {
 
   revalidatePath('/settings')
   revalidatePath('/')
-}
+*/}
 
 export async function deleteCompanyData(): Promise<void> {
   const supabase = await createClient()
