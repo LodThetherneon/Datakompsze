@@ -21,11 +21,11 @@ export async function login(formData: FormData) {
   }
 
   const { data: roleRow } = await supabase
-    .from('user_roles').select('role').eq('id', authData.user.id).single()
+    .from('profiles').select('role').eq('id', authData.user.id).single()
 
   if (ADMIN_ROLES.includes(roleRow?.role ?? '')) {
     await supabase.auth.signOut()
-    redirect('/admin/login?error=forbidden')
+    redirect('/login?error=admin')
   }
 
   revalidatePath('/', 'layout')

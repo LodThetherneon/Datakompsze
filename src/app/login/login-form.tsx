@@ -65,8 +65,29 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
         </button>
       </div>
 
-      {/* Hibaüzenet */}
-      {localError && (
+      {/* ÚJ: Admin figyelmeztető doboz */}
+      {localError === 'admin' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <ShieldAlert size={15} className="text-amber-600" />
+            <p className="text-[13px] font-bold text-amber-700">Rendszergazda fiók</p>
+          </div>
+          <p className="text-[12px] text-amber-600 mb-3">
+            Ez a felület vállalati felhasználók számára készült.<br />
+            Rendszergazdaként kérjük az admin belépőt használd.
+          </p>
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[12px] font-bold px-4 py-2 rounded-lg transition-colors"
+          >
+            <ShieldAlert size={12} />
+            Admin belépő →
+          </Link>
+        </div>
+      )}
+
+      {/* MÓDOSÍTOTT: csak akkor piros hiba, ha NEM 'admin' az error */}
+      {localError && localError !== 'admin' && (
         <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl mb-5 border border-red-100 text-center">
           {localError}
         </div>
@@ -204,7 +225,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
         </div>
       )}
 
-      {/* Admin link — csak navigál az /admin/login-ra, nem lép be */}
+      {/* Admin link */}
       <div className="mt-6 pt-5 border-t border-slate-100 flex justify-center">
         <Link
           href="/admin/login"
