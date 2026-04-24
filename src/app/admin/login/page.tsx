@@ -1,15 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { adminLogin } from './actions'
-import { AlertTriangle } from 'lucide-react'
 
-export default async function AdminLoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>
-}) {
-  const { error } = await searchParams
-
+export default async function AdminLoginPage() {
   // Ha már be van lépve admin jogon, rögtön az admin panelre
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,26 +15,13 @@ export default async function AdminLoginPage({
     }
   }
 
-  const errorMsg =
-    error === 'forbidden' ? 'Nincs admin jogosultságod ehhez a fiókhoz.' :
-    error === 'invalid'   ? 'Hibás email cím vagy jelszó.' :
-    null
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-[380px] p-8">
-
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Admin belépő</h1>
           <p className="text-[13px] text-slate-400 mt-1">Csak jogosult felhasználók számára</p>
         </div>
-
-        {errorMsg && (
-          <div className="mb-5 flex items-start gap-2.5 bg-red-50 text-red-600 text-[13px] p-3.5 rounded-xl border border-red-100">
-            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
 
         <form action={adminLogin} className="space-y-4">
           <div>
@@ -54,7 +34,7 @@ export default async function AdminLoginPage({
               required
               autoFocus
               placeholder="admin@ceg.hu"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
             />
           </div>
           <div>
@@ -66,17 +46,16 @@ export default async function AdminLoginPage({
               type="password"
               required
               placeholder="••••••••"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[13px] font-semibold rounded-xl transition-all mt-2 shadow-sm shadow-emerald-500/20"
+            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold rounded-xl transition-all mt-2"
           >
             Belépés
           </button>
         </form>
-
       </div>
     </div>
   )
