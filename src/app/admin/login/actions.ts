@@ -21,7 +21,7 @@ export async function adminLogin(formData: FormData) {
   const userId = authData.user!.id
 
   const { data: roleRow } = await supabase
-    .from('user_roles').select('role').eq('id', userId).single()
+    .from('profiles').select('role').eq('id', userId).single()
 
   if (!ADMIN_ROLES.includes(roleRow?.role ?? '')) {
     await supabase.auth.signOut()
