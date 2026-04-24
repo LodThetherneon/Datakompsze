@@ -188,7 +188,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
           <div>
             <label className={labelClass}>Jelszó</label>
             <div className="relative">
-              <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 6 karakter" className={inputClass + ' pr-11'} />
+              <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 8 karakter, nagybetű, szám" className={inputClass + ' pr-11'} />
               <button type="button" onClick={() => setShowPass(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
