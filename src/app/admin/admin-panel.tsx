@@ -1,8 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { changeUserRole, inviteUser, deleteUser } from './actions'
-import { Shield, UserPlus, Trash2, ChevronDown, Check, Clock, Mail, ShieldAlert, ShieldCheck, Eye, User, AlertTriangle } from 'lucide-react'
+import {
+  UserPlus, Trash2, ChevronDown, Check, Clock,
+  Mail, ShieldAlert, ShieldCheck, Eye, User,
+  AlertTriangle, Users
+} from 'lucide-react'
 
 type UserRow = {
   id: string
@@ -19,34 +23,53 @@ type Props = {
   myRole: string
 }
 
-const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
-  superadmin: { label: 'Superadmin',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', icon: ShieldAlert },
-  admin:       { label: 'Admin',         color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-200',    icon: ShieldCheck },
-  admin_reader:{ label: 'Admin (olvasó)',color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-200',  icon: Eye },
-  user:        { label: 'Felhasználó',   color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-200',   icon: User },
-  limited_user:{ label: 'Korl. felhasználó', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200', icon: User },
+const ROLE_CONFIG: Record<string, {
+  label: string; color: string; bg: string; border: string; icon: React.ElementType
+}> = {
+  superadmin:   { label: 'Superadmin',        color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', icon: ShieldAlert },
+  admin:        { label: 'Admin',             color: 'text-rose-700',   bg: 'bg-rose-50',    border: 'border-rose-200',   icon: ShieldCheck },
+  admin_reader: { label: 'Admin (olvasó)',     color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-200',  icon: Eye },
+  user:         { label: 'Felhasználó',        color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-200',   icon: User },
+  limited_user: { label: 'Korl. felhasználó', color: 'text-slate-500',  bg: 'bg-slate-100',  border: 'border-slate-200',  icon: User },
 }
 
 function RoleBadge({ role }: { role: string }) {
   const cfg = ROLE_CONFIG[role] ?? ROLE_CONFIG['user']
   const Icon = cfg.icon
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-[11px] font-semibold border whitespace-nowrap ${cfg.color} ${cfg.bg} ${cfg.border}`}>
       <Icon size={11} />
       {cfg.label}
     </span>
   )
 }
 
-function RoleDropdown({ userId, currentRole, myRole, myId, disabled }: {
-  userId: string, currentRole: string, myRole: string, myId: string, disabled: boolean
+// Dropdown fixed pozícióban — nem vágja le a tábla overflow-ja
+function RoleDropdown({ userId, currentRole, myRole, disabled }: {
+  userId: string; currentRole: string; myRole: string; disabled: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
   const [isPending, startTransition] = useTransition()
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const availableRoles = myRole === 'superadmin'
     ? ['superadmin', 'admin', 'admin_reader', 'user', 'limited_user']
     : ['admin_reader', 'user', 'limited_user']
+
+  const handleOpen = () => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    // Nyíljon felfelé ha az ablak aljához közel van
+    const spaceBelow = window.innerHeight - rect.bottom
+    const menuH = availableRoles.length * 42
+    const openUp = spaceBelow < menuH + 8
+    setPos({
+      top: openUp ? rect.top - menuH - 4 : rect.bottom + 4,
+      left: rect.right - 192, // 192 = min-w-[12rem]
+    })
+    setOpen(true)
+  }
 
   const handleChange = (role: string) => {
     setOpen(false)
@@ -56,27 +79,40 @@ function RoleDropdown({ userId, currentRole, myRole, myId, disabled }: {
     startTransition(() => changeUserRole(fd))
   }
 
+  // Zárja be görgetéskor is
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    return () => window.removeEventListener('scroll', close, true)
+  }, [open])
+
   if (disabled) return <RoleBadge role={currentRole} />
 
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={btnRef}
+        onClick={handleOpen}
         disabled={isPending}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[13px] font-medium text-slate-700 transition-all shadow-sm"
+        className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[13px] font-medium text-slate-700 transition-all shadow-sm disabled:opacity-60"
       >
-        {isPending ? (
-          <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-        ) : (
-          <RoleBadge role={currentRole} />
-        )}
-        <ChevronDown size={13} className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        {isPending
+          ? <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+          : <RoleBadge role={currentRole} />
+        }
+        <ChevronDown size={13} className={`text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[180px]">
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Panel — fixed, soha nem vágódik le */}
+          <div
+            className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden w-48 py-1"
+            style={{ top: pos.top, left: pos.left }}
+          >
             {availableRoles.map(role => {
               const cfg = ROLE_CONFIG[role]
               const Icon = cfg.icon
@@ -84,18 +120,18 @@ function RoleDropdown({ userId, currentRole, myRole, myId, disabled }: {
                 <button
                   key={role}
                   onClick={() => handleChange(role)}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium hover:bg-slate-50 transition-colors ${currentRole === role ? 'bg-slate-50' : ''}`}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors hover:bg-slate-50 ${currentRole === role ? 'bg-slate-50' : ''}`}
                 >
                   <Icon size={13} className={cfg.color} />
-                  <span className={cfg.color}>{cfg.label}</span>
-                  {currentRole === role && <Check size={12} className="ml-auto text-emerald-500" />}
+                  <span className={`${cfg.color} flex-1 text-left`}>{cfg.label}</span>
+                  {currentRole === role && <Check size={12} className="text-emerald-500 flex-shrink-0" />}
                 </button>
               )
             })}
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }
 
@@ -116,33 +152,29 @@ function InviteModal({ onClose, myRole }: { onClose: () => void; myRole: string 
       try {
         await inviteUser(fd)
         setSuccess(true)
-        setTimeout(onClose, 1500)
+        setTimeout(onClose, 1800)
       } catch (err: any) {
-        setError(err.message ?? 'Hiba történt')
+        setError(err.message ?? 'Ismeretlen hiba történt')
       }
     })
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-            <UserPlus size={16} className="text-emerald-600" />
-          </div>
-          <div>
-            <h3 className="text-[15px] font-bold text-slate-800">Felhasználó meghívása</h3>
-            <p className="text-[12px] text-slate-400">Email meghívó küldése</p>
-          </div>
+      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[420px] p-7 z-10 border border-slate-100">
+        <div className="mb-6">
+          <h3 className="text-[17px] font-bold text-slate-800 tracking-tight">Felhasználó meghívása</h3>
+          <p className="text-[13px] text-slate-400 mt-0.5">Meghívó emailt küld a megadott címre</p>
         </div>
 
         {success ? (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-              <Check size={22} className="text-emerald-500" />
+          <div className="flex flex-col items-center gap-3 py-8">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <Check size={24} className="text-emerald-500" />
             </div>
-            <p className="text-[14px] font-bold text-slate-700">Meghívó elküldve!</p>
+            <p className="text-[15px] font-bold text-slate-700">Meghívó elküldve!</p>
+            <p className="text-[13px] text-slate-400">A felhasználó emailben kapja meg a linket.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,8 +186,9 @@ function InviteModal({ onClose, myRole }: { onClose: () => void; myRole: string 
                 name="email"
                 type="email"
                 required
+                autoFocus
                 placeholder="kollegam@sze.hu"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
               />
             </div>
             <div>
@@ -165,44 +198,38 @@ function InviteModal({ onClose, myRole }: { onClose: () => void; myRole: string 
               <select
                 name="role"
                 defaultValue="user"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
               >
                 {availableRoles.map(role => (
-                  <option key={role} value={role}>
-                    {ROLE_CONFIG[role].label}
-                  </option>
+                  <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>
                 ))}
               </select>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 bg-red-50 text-red-600 text-[13px] p-3 rounded-xl border border-red-100">
-                <AlertTriangle size={14} />
-                {error}
+              <div className="flex items-start gap-2.5 bg-red-50 text-red-600 text-[13px] p-3.5 rounded-xl border border-red-100">
+                <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-1">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-all"
               >
                 Mégse
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[13px] font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-[13px] font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm shadow-emerald-500/20"
               >
-                {isPending ? (
-                  <span className="w-4 h-4 border-[3px] border-emerald-300 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Mail size={14} />
-                    Meghívó küldése
-                  </>
-                )}
+                {isPending
+                  ? <span className="w-4 h-4 border-[2.5px] border-emerald-300 border-t-white rounded-full animate-spin" />
+                  : <><Mail size={14} />Meghívó küldése</>
+                }
               </button>
             </div>
           </form>
@@ -212,164 +239,204 @@ function InviteModal({ onClose, myRole }: { onClose: () => void; myRole: string 
   )
 }
 
+function DeleteConfirmModal({ email, onConfirm, onClose }: {
+  email: string; onConfirm: () => void; onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[380px] p-7 z-10 border border-slate-100">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+            <Trash2 size={20} className="text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-[16px] font-bold text-slate-800">Fiók törlése</h3>
+            <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
+              Biztosan törlöd ezt a fiókot?<br />
+              <span className="font-semibold text-slate-700">{email}</span>
+            </p>
+            <p className="text-[12px] text-red-500 mt-2 font-medium">Ez a művelet nem visszavonható.</p>
+          </div>
+          <div className="flex gap-3 w-full mt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+            >
+              Mégse
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[13px] font-semibold transition-all shadow-sm shadow-red-500/20"
+            >
+              Törlés
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AdminPanel({ users, myId, myRole }: Props) {
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [deletePending, startDeleteTransition] = useTransition()
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
+  const [, startDeleteTransition] = useTransition()
 
-  const handleDelete = (userId: string, email: string) => {
-    if (!confirm(`Biztosan törlöd ezt a fiókot?\n\n${email}\n\nEz a művelet nem visszavonható!`)) return
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return
     const fd = new FormData()
-    fd.set('userId', userId)
+    fd.set('userId', deleteTarget.id)
     startDeleteTransition(() => deleteUser(fd))
+    setDeleteTarget(null)
   }
 
   const formatDate = (d: string | null) => {
     if (!d) return '—'
-    return new Intl.DateTimeFormat('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(d))
+    return new Intl.DateTimeFormat('hu-HU', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }).format(new Date(d))
   }
 
-  const stats = {
-    total: users.length,
-    superadmin: users.filter(u => u.role === 'superadmin').length,
-    admin: users.filter(u => u.role === 'admin').length,
-    admin_reader: users.filter(u => u.role === 'admin_reader').length,
-    user: users.filter(u => u.role === 'user').length,
-    limited_user: users.filter(u => u.role === 'limited_user').length,
-  }
+  const stats = [
+    { label: 'Összesen',           value: users.length,                                                       color: 'text-slate-800',  bg: 'bg-white' },
+    { label: 'Admin',              value: users.filter(u => u.role === 'admin').length,                       color: 'text-rose-700',   bg: 'bg-rose-50' },
+    { label: 'Admin (olvasó)',     value: users.filter(u => u.role === 'admin_reader').length,                color: 'text-amber-700',  bg: 'bg-amber-50' },
+    { label: 'Felhasználó',        value: users.filter(u => u.role === 'user').length,                        color: 'text-blue-700',   bg: 'bg-blue-50' },
+    { label: 'Korl. felhasználó',  value: users.filter(u => u.role === 'limited_user').length,                color: 'text-slate-500',  bg: 'bg-slate-100' },
+  ]
 
   return (
-    <div className="max-w-6xl space-y-8 font-sans">
+    <div className="w-full space-y-8">
 
-      {/* Fejléc */}
-      <header className="pb-6 border-b border-slate-200/80 flex items-start justify-between gap-4">
+      {/* ── Fejléc ── */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center">
-              <Shield size={16} className="text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Admin panel</h1>
-          </div>
-          <p className="text-[14px] text-slate-500 font-medium">
-            Felhasználók kezelése, szerepkörök és meghívók.
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Felhasználók kezelése</h1>
+          <p className="text-[14px] text-slate-500 mt-2 font-medium">
+            Szerepkörök, meghívók és fiókok kezelése.
           </p>
         </div>
         <button
           onClick={() => setInviteOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)] rounded-lg px-6 h-11 cursor-pointer"
         >
-          <UserPlus size={15} />
+          <UserPlus size={18} />
           Felhasználó meghívása
         </button>
       </header>
 
-      {/* Statisztika kártyák */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: 'Összesen', value: stats.total, color: 'text-slate-800', bg: 'bg-white' },
-          { label: 'Superadmin', value: stats.superadmin, color: 'text-purple-700', bg: 'bg-purple-50' },
-          { label: 'Admin', value: stats.admin, color: 'text-red-700', bg: 'bg-red-50' },
-          { label: 'Admin (olvasó)', value: stats.admin_reader, color: 'text-amber-700', bg: 'bg-amber-50' },
-          { label: 'Felhasználók', value: stats.user + stats.limited_user, color: 'text-blue-700', bg: 'bg-blue-50' },
-        ].map(s => (
-          <div key={s.label} className={`${s.bg} rounded-xl border border-slate-100 p-4 flex flex-col gap-1`}>
-            <span className={`text-2xl font-black ${s.color}`}>{s.value}</span>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</span>
+      {/* ── Stat kártyák ── */}
+      <div className="grid grid-cols-5 gap-3">
+        {stats.map(s => (
+          <div key={s.label} className={`${s.bg} rounded-xl border border-slate-100 px-4 py-3.5`}>
+            <div className={`text-2xl font-black ${s.color} leading-none`}>{s.value}</div>
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-1.5">{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Felhasználók tábla */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Fejléc sor */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/80 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          <div className="col-span-4">Felhasználó</div>
-          <div className="col-span-2">Státusz</div>
-          <div className="col-span-2">Regisztrált</div>
-          <div className="col-span-2">Utolsó belépés</div>
-          <div className="col-span-2 text-right">Szerepkör / Műveletek</div>
+      {/* ── Tábla ── */}
+      {/* overflow-visible hogy a fixed dropdown ne legyen levágva */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible">
+
+        <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100">
+          <Users size={15} className="text-slate-400" />
+          <span className="text-[13px] font-semibold text-slate-600">{users.length} felhasználó</span>
         </div>
 
-        <div className="divide-y divide-slate-50">
-          {users.map(u => {
-            const isMe = u.id === myId
-            const canChangeRole = !isMe && !(u.role === 'superadmin' && myRole !== 'superadmin')
-            const canDelete = myRole === 'superadmin' && !isMe
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/60">
+              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[38%]">Felhasználó</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[12%]">Státusz</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">Regisztrált</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">Utolsó belépés</th>
+              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[14%] text-right">Szerepkör</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {users.map(u => {
+              const isMe = u.id === myId
+              const canChangeRole = !isMe && !(u.role === 'superadmin' && myRole !== 'superadmin')
+              const canDelete = myRole === 'superadmin' && !isMe
 
-            return (
-              <div key={u.id} className={`grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50/50 transition-colors ${isMe ? 'bg-emerald-50/30' : ''}`}>
+              return (
+                <tr
+                  key={u.id}
+                  className={`group transition-colors ${isMe ? 'bg-emerald-50/40' : 'hover:bg-slate-50/60'}`}
+                >
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 ${
+                        u.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
+                        u.role === 'admin'      ? 'bg-rose-100 text-rose-700'     :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                        {u.email.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-semibold text-slate-800 truncate">{u.email}</div>
+                        {isMe && <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Te</span>}
+                      </div>
+                    </div>
+                  </td>
 
-                {/* Email + saját jelölő */}
-                <div className="col-span-4 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 ${
-                    u.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
-                    u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {u.email.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-bold text-slate-800 truncate">{u.email}</div>
-                    {isMe && (
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Te</span>
+                  <td className="px-4 py-3.5">
+                    {u.confirmed ? (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">
+                        <Check size={10} /> Aktív
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg">
+                        <Clock size={10} /> Meghívott
+                      </span>
                     )}
-                  </div>
-                </div>
+                  </td>
 
-                {/* Státusz (megerősített?) */}
-                <div className="col-span-2">
-                  {u.confirmed ? (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-lg">
-                      <Check size={10} /> Aktív
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg">
-                      <Clock size={10} /> Meghívott
-                    </span>
-                  )}
-                </div>
+                  <td className="px-4 py-3.5 text-[12px] text-slate-500 font-medium tabular-nums">
+                    {formatDate(u.created_at)}
+                  </td>
 
-                {/* Regisztráció dátuma */}
-                <div className="col-span-2 text-[12px] text-slate-500 font-medium">
-                  {formatDate(u.created_at)}
-                </div>
+                  <td className="px-4 py-3.5 text-[12px] text-slate-400 font-medium tabular-nums">
+                    {formatDate(u.last_sign_in)}
+                  </td>
 
-                {/* Utolsó belépés */}
-                <div className="col-span-2 text-[12px] text-slate-400 font-medium">
-                  {formatDate(u.last_sign_in)}
-                </div>
-
-                {/* Role dropdown + törlés */}
-                <div className="col-span-2 flex items-center justify-end gap-2">
-                  <RoleDropdown
-                    userId={u.id}
-                    currentRole={u.role}
-                    myRole={myRole}
-                    myId={myId}
-                    disabled={!canChangeRole}
-                  />
-                  {canDelete && (
-                    <button
-                      onClick={() => handleDelete(u.id, u.email)}
-                      disabled={deletePending}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
-                      title="Felhasználó törlése"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-
-              </div>
-            )
-          })}
-        </div>
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center justify-end gap-2">
+                      <RoleDropdown
+                        userId={u.id}
+                        currentRole={u.role}
+                        myRole={myRole}
+                        disabled={!canChangeRole}
+                      />
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteTarget(u)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                          title="Fiók törlése"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {/* Meghívó modal */}
-      {inviteOpen && (
-        <InviteModal onClose={() => setInviteOpen(false)} myRole={myRole} />
+      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} myRole={myRole} />}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          email={deleteTarget.email}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+        />
       )}
-
     </div>
   )
 }
