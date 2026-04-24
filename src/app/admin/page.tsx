@@ -1,83 +1,37 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { adminLogin } from './actions'
-import { AlertTriangle } from 'lucide-react'
+import { AdminPanel } from './admin-panel'
 
-export default async function AdminLoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>
-}) {
-  const { error } = await searchParams
-
-  // Ha már be van lépve admin jogon, rögtön az admin panelre
+export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (user) {
-    const { data } = await supabase
-      .from('user_roles').select('role').eq('id', user.id).single()
-    const role = data?.role ?? ''
-    if (['superadmin', 'admin', 'admin_reader'].includes(role)) {
-      redirect('/admin')
-    }
+
+  if (!user) redirect('/admin/login')
+
+  const { data: roleRow } = await supabase
+    .from('user_roles').select('role').eq('id', user.id).single()
+
+  const role = roleRow?.role ?? ''
+  if (!['superadmin', 'admin', 'admin_reader'].includes(role)) {
+    redirect('/admin/login?error=forbidden')
   }
 
-  const errorMsg =
-    error === 'forbidden' ? 'Nincs admin jogosultságod ehhez a fiókhoz.' :
-    error === 'invalid'   ? 'Hibás email cím vagy jelszó.' :
-    null
+  const { data: usersRaw } = await supabase
+    .from('user_roles')
+    .select('id, role')
+
+  const users = (usersRaw ?? []).map((u: any) => ({
+    id: u.id,
+    email: u.id,
+    role: u.role,
+    created_at: '',
+    last_sign_in: null,
+    confirmed: true,
+  }))
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-[380px] p-8">
-
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Admin belépő</h1>
-          <p className="text-[13px] text-slate-400 mt-1">Csak jogosult felhasználók számára</p>
-        </div>
-
-        {errorMsg && (
-          <div className="mb-5 flex items-start gap-2.5 bg-red-50 text-red-600 text-[13px] p-3.5 rounded-xl border border-red-100">
-            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        <form action={adminLogin} className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              Email
-            </label>
-            <input
-              name="email"
-              type="email"
-              required
-              autoFocus
-              placeholder="admin@ceg.hu"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              Jelszó
-            </label>
-            <input
-              name="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[13px] font-semibold rounded-xl transition-all mt-2 shadow-sm shadow-emerald-500/20"
-          >
-            Belépés
-          </button>
-        </form>
-
-      </div>
+    <div className="min-h-screen bg-slate-50 p-8">
+      <AdminPanel users={users} myId={user.id} myRole={role} />
     </div>
   )
 }

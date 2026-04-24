@@ -18,10 +18,11 @@ export async function adminLogin(formData: FormData) {
     redirect('/admin/login?error=invalid')
   }
 
-  const { data: roleRow } = await supabase
-    .from('user_roles').select('role').eq('id', authData.user.id).single()
+  const userId = authData.user!.id
 
-  // Ha NINCS admin role-ja, kidobjuk
+  const { data: roleRow } = await supabase
+    .from('user_roles').select('role').eq('id', userId).single()
+
   if (!ADMIN_ROLES.includes(roleRow?.role ?? '')) {
     await supabase.auth.signOut()
     redirect('/admin/login?error=forbidden')
