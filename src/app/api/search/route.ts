@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { getCompanyId } from '@/utils/company'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -11,20 +12,19 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json([])
 
-  const { data: company } = await supabase
-    .from('companies').select('id').eq('user_id', user.id).single()
-  if (!company) return NextResponse.json([])
+  const companyId = await getCompanyId()
+  if (!companyId) return NextResponse.json([])
 
   // 1. lépés: websites id lista és url keresés egyszerre fut
   const [allWebsitesResult, websitesSearchResult] = await Promise.all([
     supabase
       .from('websites')
       .select('id')
-      .eq('company_id', company.id),
+      .eq('company_id', companyId),
     supabase
       .from('websites')
       .select('id, url, status')
-      .eq('company_id', company.id)
+      .eq('company_id', companyId)
       .ilike('url', `%${q}%`)
       .limit(8),
   ])

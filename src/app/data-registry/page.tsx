@@ -9,6 +9,7 @@ import { SearchBar } from '@/components/search-bar'
 import { Search, Building2, Clock, Tag, HardDrive, Target, Globe, Settings2, Database, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SystemActionsCell } from '@/components/system-actions-cell'
 import Link from 'next/link'
+import { getCompanyId } from '@/utils/company'
 
 const PAGE_SIZE = 20
 
@@ -28,21 +29,20 @@ export default async function DataRegistryPage(props: {
   let departments: any[] = []
 
   if (user) {
-    const { data: company } = await supabase
-      .from('companies').select('id').eq('user_id', user.id).single()
+    const companyId = await getCompanyId()
 
-    if (company) {
+    if (companyId) {
       const { data: webData } = await supabase
         .from('websites')
         .select('id, url, status')
-        .eq('company_id', company.id)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
       allWebsites = webData ?? []
 
       const { data: deptData } = await supabase
         .from('departments')
         .select('*')
-        .eq('company_id', company.id)
+        .eq('company_id', companyId)
         .order('name', { ascending: true })
       departments = deptData ?? []
 
@@ -50,7 +50,7 @@ export default async function DataRegistryPage(props: {
       let countQuery = supabase
         .from('data_processes')
         .select('id', { count: 'exact', head: true })
-        .eq('company_id', company.id)
+        .eq('company_id', companyId)
       if (searchQuery) {
         countQuery = countQuery.or(
           `department_name.ilike.%${searchQuery}%,process_name.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%`
@@ -63,7 +63,7 @@ export default async function DataRegistryPage(props: {
       let query = supabase
         .from('data_processes')
         .select('*, process_system_links(system_id, systems(id, website_id))')
-        .eq('company_id', company.id)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1)
 

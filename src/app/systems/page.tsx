@@ -12,6 +12,7 @@ import { PenLine, ScanSearch, Tag, Database, CheckCircle2, GitBranch, Settings2,
 import { SystemDetailDialog } from '@/components/system-detail-dialog'
 import { updateSystem } from '@/app/actions'
 import { SystemActionsCell } from '@/components/system-actions-cell'
+import { getCompanyId } from '@/utils/company'
 
 const PAGE_SIZE = 20
 
@@ -36,13 +37,12 @@ export default async function SystemsPage(props: {
   let totalCount          = 0
 
   if (user) {
-    const { data: company } = await supabase
-      .from('companies').select('id').eq('user_id', user.id).single()
+    const companyId = await getCompanyId()
 
-    if (company) {
+    if (companyId) {
       const { data: webData } = await supabase
         .from('websites').select('*')
-        .eq('company_id', company.id)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
 
       if (webData && webData.length > 0) {
@@ -105,7 +105,7 @@ export default async function SystemsPage(props: {
             supabase
               .from('data_processes')
               .select('id, process_name')
-              .eq('company_id', company.id),
+              .eq('company_id', companyId),
             supabase
               .from('process_system_links')
               .select('process_id, system_id')

@@ -1,5 +1,6 @@
 'use server'
 
+import { getCompanyId } from '@/utils/company'
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { runScanner } from '@/lib/scanner'
@@ -72,9 +73,8 @@ export async function addManualSystem(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
-  const { data: company } = await supabase
-    .from('companies').select('id').eq('user_id', user.id).single()
-  if (!company) throw new Error("Nincs cégadat beállítva!")
+  const companyId2 = await getCompanyId()
+  if (!companyId2) throw new Error("Nincs cégadat beállítva!")
 
   const websiteId = (formData.get('websiteId') as string)?.trim()
   if (!websiteId) throw new Error("A forrás weboldal megadása kötelező!")
@@ -94,7 +94,7 @@ export async function addManualSystem(formData: FormData) {
   if (isNaN(retentionDate.getTime())) throw new Error("Érvénytelen dátum!")
 
   const { error } = await supabase.from('systems').insert([{
-    company_id:        company.id,
+    company_id:        companyId2,
     website_id:        websiteId,
     system_name:       dataTypeCat,
     purpose: (formData.get('purpose') as string)?.trim() || dataTypeCat,
@@ -669,13 +669,12 @@ export async function refreshAllPolicies() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Nem vagy bejelentkezve!")
 
-  const { data: company } = await supabase
-    .from('companies').select('id').eq('user_id', user.id).single()
-  if (!company) throw new Error("Nincs cégadat!")
+  const companyId = await getCompanyId()
+  if (!companyId) throw new Error("Nincs cégadat!")
 
   const { data: websites } = await supabase
     .from('websites').select('id')
-    .eq('company_id', company.id)
+    .eq('company_id', companyId)
     .neq('status', 'scanning')
     .neq('status', 'offline')
 
@@ -717,12 +716,11 @@ export async function acceptAllPending() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Nem vagy bejelentkezve!')
 
-  const { data: company } = await supabase
-    .from('companies').select('id').eq('user_id', user.id).single()
-  if (!company) throw new Error('Nincs cégadat!')
+  const companyId = await getCompanyId()
+  if (!companyId) throw new Error('Nincs cégadat!')
 
   const { data: websites } = await supabase
-    .from('websites').select('id').eq('company_id', company.id)
+    .from('websites').select('id').eq('company_id', companyId)
 
   if (!websites || websites.length === 0) return
 

@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { Search, PenLine } from "lucide-react";
+import { getCompanyId } from '@/utils/company'
 
 // --- ACTIONS ---
 import { addConnection, deleteWebsite, rescanWebsite } from "./actions";
@@ -27,13 +28,7 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 2. CÉG LEKÉRDEZÉSE
-  let companyId: string | null = null;
-  if (user) {
-    const { data: company } = await supabase
-      .from('companies').select('id').eq('user_id', user.id).single();
-    if (company) companyId = company.id;
-  }
+  const companyId = user ? await getCompanyId() : null;
 
   // 3. ADATOK LEKÉRDEZÉSE – websites először, majd systems + policies egyszerre
   let websites: any[] = [];
