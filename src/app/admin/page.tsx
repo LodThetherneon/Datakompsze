@@ -8,7 +8,6 @@ export default async function AdminPage() {
 
   if (!user) redirect('/admin/login')
 
-  // SERVICE CLIENT – RLS nem blokkolja
   const serviceClient = createServiceClient()
 
   const { data: roleRow } = await serviceClient
@@ -19,18 +18,25 @@ export default async function AdminPage() {
     redirect('/admin/login?error=forbidden')
   }
 
-  const { data: usersRaw } = await serviceClient
-    .from('profiles')
-    .select('id, role')
+  // Auth admin API-val lekérjük az összes usert (email + meta)
+  const { data: authUsers } = await serviceClient.auth.admin.listUsers()
 
-  const users = (usersRaw ?? []).map((u: any) => ({
-    id: u.id,
-    email: u.id,
-    role: u.role,
-    created_at: '',
-    last_sign_in: null,
-    confirmed: true,
-  }))
+  // Profiles lekérése role-okkal
+  const { data: profiles } = await serviceClient
+    .from('profiles').select('id, role, created_at')
+
+  // Összeillesztés
+  const users = (profiles ?? []).map((p: any) => {
+    const authUser = (authUsers?.users ?? []).find((u: any) => u.id === p.id)
+    return {
+      id: p.id,
+      email: authUser?.email ?? p.id,
+      role: p.role,
+      created_at: p.created_at,
+      last_sign_in: authUser?.last_sign_in_at ?? null,
+      confirmed: !!authUser?.email_confirmed_at,
+    }
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">

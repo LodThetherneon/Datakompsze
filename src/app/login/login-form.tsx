@@ -73,7 +73,6 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             <p className="text-[13px] font-bold text-amber-700">Rendszergazda fiók</p>
           </div>
           <p className="text-[12px] text-amber-600 mb-3">
-            Ez a felület vállalati felhasználók számára készült.<br />
             Rendszergazdaként kérjük az admin belépőt használd.
           </p>
           <Link
@@ -133,7 +132,9 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             onClick={(e) => {
               const form = (e.currentTarget as HTMLElement).closest('form') as HTMLFormElement
               const formData = new FormData(form)
-              startTransition(() => { login(formData) })
+              startTransition(async () => {
+                await login(formData)
+              })
             }}
             className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group"
           >
@@ -229,7 +230,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
       <div className="mt-6 pt-5 border-t border-slate-100 flex justify-center">
         <Link
           href="/admin/login"
-          className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-emerald-700 transition-colors"
+          className="flex items-center gap-1.5 text-[12px] text-black-400 hover:text-emerald-700 transition-colors"
         >
           <ShieldAlert size={12} />
           Rendszergazda belépés
