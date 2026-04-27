@@ -1,8 +1,7 @@
 import { 
   LayoutDashboard, Database, FileText, FolderKanban, 
-  Building2, Settings, ScanSearch, PenLine, RefreshCw,
-  CheckCircle2, AlertTriangle, Globe, Wifi, Tag, Clock,
-  ChevronRight
+  Building2, Settings, ChevronRight, ShieldAlert,
+  Users, UserCog, Trash2, UserPlus
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -155,28 +154,63 @@ const sections = [
       },
     ],
   },
+  {
+    id: 'adminpanel',
+    icon: ShieldAlert,
+    color: 'text-purple-600',
+    bg: 'bg-purple-50',
+    title: 'Admin panel',
+    description: 'Az Admin panel kizárólag superadmin és admin jogosultságú felhasználók számára érhető el. Itt kezelheti a rendszer összes felhasználóját, szerepkörét és céghez rendelését.',
+    items: [
+      {
+        q: 'Hogyan érhető el az Admin panel?',
+        a: 'Az Admin panel a /admin útvonalon érhető el. Belépéshez külön admin bejelentkezés szükséges. Csak superadmin, admin és admin (olvasó) szerepkörű felhasználók férhetnek hozzá.',
+      },
+      {
+        q: 'Milyen szerepkörök léteznek a rendszerben?',
+        a: 'Superadmin: teljes hozzáférés, felhasználók és szerepkörök kezelése. Admin: felhasználók kezelése, de superadmin szerepkört nem oszthat. Admin (olvasó): csak megtekintési jog az admin panelben. Felhasználó: normál hozzáférés a saját cég adataihoz. Korlátozott felhasználó: csak olvasási jog.',
+      },
+      {
+        q: 'Hogyan rendelhetek felhasználót céghez?',
+        a: 'Az Admin panel táblázatában minden felhasználó sorában megjelenik egy "Cég" legördülő menü. Ebből kiválasztva a megfelelő céget, a felhasználó azonnal hozzáfér az adott cég adataihoz — újbóli bejelentkezés nélkül.',
+      },
+      {
+        q: 'Hogyan hívhatok meg új felhasználót?',
+        a: 'A "Felhasználó meghívása" gombra kattintva megadhatja az email címet és a kívánt szerepkört. A rendszer meghívó emailt küld, amellyel a felhasználó beállíthatja jelszavát és aktiválhatja fiókját.',
+      },
+      {
+        q: 'Hogyan törölhetek felhasználót?',
+        a: 'A táblázatban a felhasználó sorára húzva az egeret megjelenik a törlés ikon (kuka). Kattintás után egy megerősítő párbeszédablak jelenik meg. A törlés végleges és nem visszavonható.',
+      },
+      {
+        q: 'Mit jelent az "Aktív" és "Meghívott" státusz?',
+        a: '"Aktív" azt jelenti, hogy a felhasználó már megerősítette az email címét és bejelentkezett. "Meghívott" azt jelenti, hogy a meghívó el lett küldve, de a felhasználó még nem aktiválta a fiókját.',
+      },
+    ],
+  },
 ]
 
 export default function HelpPage() {
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full">
 
-      {/* Fejléc */}
-      <div className="mb-12">
-        <div className="flex items-center gap-2 text-[13px] text-slate-400 font-medium mb-4">
-          <Link href="/" className="hover:text-emerald-600 transition-colors">Irányítópult</Link>
-          <ChevronRight size={14} />
-          <span className="text-slate-600">Súgóközpont</span>
+      {/* ── Fejléc ── */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80 mb-10">
+        <div>
+          <div className="flex items-center gap-2 text-[13px] text-slate-400 font-medium mb-3">
+            <Link href="/" className="hover:text-emerald-600 transition-colors">Irányítópult</Link>
+            <ChevronRight size={14} />
+            <span className="text-slate-600">Súgóközpont</span>
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Súgóközpont</h1>
+          <p className="text-[14px] text-slate-500 mt-2 font-medium">
+            A rendszer összes funkciójának részletes leírása és útmutatója.
+          </p>
         </div>
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight mb-3">Súgóközpont</h1>
-        <p className="text-[15px] text-slate-500 leading-relaxed max-w-2xl">
-          Ismerje meg a rendszer minden funkcióját. Az alábbi útmutató részletesen bemutatja,
-          hogyan használhatja hatékonyan a platformot.
-        </p>
-      </div>
+      </header>
 
-      {/* Gyorsnavigáció */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-12">
+      {/* ── Gyorsnavigáció ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-12">
         {sections.map((s) => {
           const Icon = s.icon
           return (
@@ -194,7 +228,7 @@ export default function HelpPage() {
         })}
       </div>
 
-      {/* Szekciók */}
+      {/* ── Szekciók ── */}
       <div className="space-y-14">
         {sections.map((section) => {
           const Icon = section.icon
