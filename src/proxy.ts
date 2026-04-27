@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest) {
   if (!user) return sessionResponse
 
   const { data: roleRow } = await supabase
-    .from('user_roles').select('role').eq('id', user.id).single()
+    .from('profiles').select('role').eq('id', user.id).single()
   const role = roleRow?.role ?? 'user'
   const isAdmin = ADMIN_ROLES.includes(role)
 

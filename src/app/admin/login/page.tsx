@@ -2,13 +2,20 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { adminLogin } from './actions'
 
-export default async function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const params = await searchParams
+  const error = params.error
+
   // Ha már be van lépve admin jogon, rögtön az admin panelre
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
     const { data } = await supabase
-      .from('user_roles').select('role').eq('id', user.id).single()
+      .from('profiles').select('role').eq('id', user.id).single()
     const role = data?.role ?? ''
     if (['superadmin', 'admin', 'admin_reader'].includes(role)) {
       redirect('/admin')
@@ -22,6 +29,12 @@ export default async function AdminLoginPage() {
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Admin belépő</h1>
           <p className="text-[13px] text-slate-400 mt-1">Csak jogosult felhasználók számára</p>
         </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl mb-5 border border-red-100 text-center">
+            {error === 'invalid' ? 'Hibás email vagy jelszó.' : 'Nincs jogosultságod a belépéshez.'}
+          </div>
+        )}
 
         <form action={adminLogin} className="space-y-4">
           <div>
