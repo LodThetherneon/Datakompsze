@@ -6,12 +6,7 @@ import { ArrowRight, ShieldAlert } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(
-    typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('error')
-      : null
-  )
-
+  const [error, setError] = useState<string | null>(null)
   const Spinner = () => (
     <span className="w-4 h-4 border-[3px] border-emerald-300 border-t-white rounded-full animate-spin inline-block" />
   )
@@ -21,7 +16,15 @@ export default function AdminLoginPage() {
     setError(null)
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
-      await adminLogin(formData)
+      try {
+        await adminLogin(formData)
+      } catch (err: any) {
+        // A Next.js redirect() belsőleg hibát dob — azt ne kapjuk el
+        if (err?.digest?.startsWith('NEXT_REDIRECT')) return
+        if (err.message === 'invalid') setError('invalid')
+        else if (err.message === 'forbidden') setError('forbidden')
+        else setError('invalid')
+      }
     })
   }
 
@@ -38,7 +41,7 @@ export default function AdminLoginPage() {
 
         {error && (
           <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl mb-5 border border-red-100 text-center">
-            {error === 'invalid' ? 'Hibás email vagy jelszó.' : 'Nincs jogosultságod a belépéshez.'}
+            {error === 'invalid' ? 'Hibas email vagy jelszo.' : 'Nincs jogosultságod a belépéshez.'}
           </div>
         )}
 

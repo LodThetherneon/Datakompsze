@@ -13,7 +13,7 @@ export async function adminLogin(formData: FormData) {
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error || !authData.user) {
-    redirect('/admin/login?error=invalid')
+    throw new Error('invalid')  // ← VÁLTOZOTT
   }
 
   const userId = authData.user.id
@@ -23,7 +23,7 @@ export async function adminLogin(formData: FormData) {
 
   if (!ADMIN_ROLES.includes(roleRow?.role ?? '')) {
     await supabase.auth.signOut()
-    redirect('/admin/login?error=forbidden')
+    throw new Error('forbidden')  // ← VÁLTOZOTT
   }
 
   revalidatePath('/', 'layout')

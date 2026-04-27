@@ -138,33 +138,113 @@ function CompanyDropdown({ userId, currentCompanyId, companies }: {
   companies: { id: string; name: string }[]
 }) {
   const [isPending, startTransition] = useTransition()
+  const [selectedId, setSelectedId] = useState(currentCompanyId ?? '')
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectedName = companies.find(c => c.id === selectedId)?.name ?? null
+
+  const handleOpen = () => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    const menuH = (companies.length + 1) * 44
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < menuH + 8
+    setPos({
+      top: openUp ? rect.top - menuH - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    })
+    setOpen(true)
+  }
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id)
+    setOpen(false)
     const fd = new FormData()
     fd.set('userId', userId)
-    fd.set('companyId', e.target.value)
+    fd.set('companyId', id)
     startTransition(() => assignCompany(fd))
   }
 
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
   return (
-    <div className="relative">
-      {isPending && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
-          <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin block" />
-        </div>
-      )}
-      <select
-        defaultValue={currentCompanyId ?? ''}
-        onChange={handleChange}
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={handleOpen}
         disabled={isPending}
-        className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all disabled:opacity-60 max-w-[180px] cursor-pointer"
+        className="flex items-center justify-between gap-2 w-full max-w-[180px] pl-3 pr-2.5 h-8 bg-white border border-slate-200 rounded-lg text-[12px] font-medium text-slate-700 hover:border-slate-300 focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 outline-none transition-colors disabled:opacity-50 cursor-pointer"
       >
-        <option value="">— Nincs cég —</option>
-        {companies.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-    </div>
+        <span className="flex items-center gap-1.5 truncate">
+          <Building2 size={11} className="text-slate-400 shrink-0" />
+          <span className={`truncate ${selectedName ? 'text-slate-700' : 'text-slate-400'}`}>
+            {isPending
+              ? <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin inline-block" />
+              : (selectedName ?? '— Nincs cég —')
+            }
+          </span>
+        </span>
+        <ChevronDown
+          size={12}
+          className={`text-slate-400 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden py-1"
+            style={{ top: pos.top, left: pos.left, width: Math.max(pos.width, 200) }}
+          >
+            {/* Nincs cég opció */}
+            <button
+              type="button"
+              onClick={() => handleSelect('')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors hover:bg-slate-50 ${
+                selectedId === '' ? 'bg-slate-50' : ''
+              }`}
+            >
+              <Building2 size={12} className="text-slate-300 shrink-0" />
+              <span className="flex-1 text-left text-slate-400">— Nincs cég —</span>
+              {selectedId === '' && <Check size={12} className="text-emerald-500 shrink-0" />}
+            </button>
+
+            {/* Elválasztó */}
+            <div className="border-t border-slate-100 my-1" />
+
+            {/* Cégek */}
+            {companies.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handleSelect(c.id)}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors hover:bg-slate-50 ${
+                  selectedId === c.id ? 'bg-emerald-50/60' : ''
+                }`}
+              >
+                <Building2 size={12} className="text-emerald-500 shrink-0" />
+                <span className="flex-1 text-left text-slate-700 truncate">{c.name}</span>
+                {selectedId === c.id && <Check size={12} className="text-emerald-500 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
