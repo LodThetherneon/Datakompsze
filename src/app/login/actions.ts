@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
 
 const ADMIN_ROLES = ['superadmin', 'admin', 'admin_reader']
 
@@ -20,7 +20,9 @@ export async function login(formData: FormData) {
     redirect('/login?error=Hibás+email+vagy+jelszó')
   }
 
-  const { data: roleRow } = await supabase
+  // SERVICE ROLE kliensre váltás – RLS nem blokkolja
+  const serviceClient = createServiceClient()
+  const { data: roleRow } = await serviceClient
     .from('profiles').select('role').eq('id', authData.user.id).single()
 
   if (ADMIN_ROLES.includes(roleRow?.role ?? '')) {

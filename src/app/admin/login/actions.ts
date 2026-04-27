@@ -8,10 +8,8 @@ const ADMIN_ROLES = ['superadmin', 'admin', 'admin_reader']
 
 export async function adminLogin(formData: FormData) {
   const supabase = await createClient()
-
   const email    = formData.get('email') as string
   const password = formData.get('password') as string
-
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error || !authData.user) {
@@ -19,8 +17,6 @@ export async function adminLogin(formData: FormData) {
   }
 
   const userId = authData.user.id
-
-  // SERVICE ROLE kliensre váltás – az RLS nem blokkolja a role lekérést
   const serviceClient = createServiceClient()
   const { data: roleRow } = await serviceClient
     .from('profiles').select('role').eq('id', userId).single()
