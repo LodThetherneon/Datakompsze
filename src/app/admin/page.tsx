@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { AdminPanel } from './admin-panel'
 
@@ -8,16 +8,19 @@ export default async function AdminPage() {
 
   if (!user) redirect('/admin/login')
 
-  const { data: roleRow } = await supabase
-    .from('user_roles').select('role').eq('id', user.id).single()
+  // SERVICE CLIENT – RLS nem blokkolja
+  const serviceClient = createServiceClient()
+
+  const { data: roleRow } = await serviceClient
+    .from('profiles').select('role').eq('id', user!.id).single()
 
   const role = roleRow?.role ?? ''
   if (!['superadmin', 'admin', 'admin_reader'].includes(role)) {
     redirect('/admin/login?error=forbidden')
   }
 
-  const { data: usersRaw } = await supabase
-    .from('user_roles')
+  const { data: usersRaw } = await serviceClient
+    .from('profiles')
     .select('id, role')
 
   const users = (usersRaw ?? []).map((u: any) => ({
@@ -31,7 +34,7 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
-      <AdminPanel users={users} myId={user.id} myRole={role} />
+      <AdminPanel users={users} myId={user!.id} myRole={role} />
     </div>
   )
 }
