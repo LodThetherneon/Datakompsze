@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { changeUserRole, inviteUser, deleteUser } from './actions'
+import { changeUserRole, inviteUser, deleteUser, assignCompany } from './actions'
 import {
   UserPlus, Trash2, ChevronDown, Check, Clock,
   Mail, ShieldAlert, ShieldCheck, Eye, User,
-  AlertTriangle, Users
+  AlertTriangle, Users, Building2
 } from 'lucide-react'
 
 type UserRow = {
@@ -15,12 +15,14 @@ type UserRow = {
   created_at: string
   last_sign_in: string | null
   confirmed: boolean
+  company_id: string | null
 }
 
 type Props = {
   users: UserRow[]
   myId: string
   myRole: string
+  companies: { id: string; name: string }[]
 }
 
 const ROLE_CONFIG: Record<string, {
@@ -44,7 +46,6 @@ function RoleBadge({ role }: { role: string }) {
   )
 }
 
-// Dropdown fixed pozícióban — nem vágja le a tábla overflow-ja
 function RoleDropdown({ userId, currentRole, myRole, disabled }: {
   userId: string; currentRole: string; myRole: string; disabled: boolean
 }) {
@@ -60,13 +61,12 @@ function RoleDropdown({ userId, currentRole, myRole, disabled }: {
   const handleOpen = () => {
     if (!btnRef.current) return
     const rect = btnRef.current.getBoundingClientRect()
-    // Nyíljon felfelé ha az ablak aljához közel van
     const spaceBelow = window.innerHeight - rect.bottom
     const menuH = availableRoles.length * 42
     const openUp = spaceBelow < menuH + 8
     setPos({
       top: openUp ? rect.top - menuH - 4 : rect.bottom + 4,
-      left: rect.right - 192, // 192 = min-w-[12rem]
+      left: rect.right - 192,
     })
     setOpen(true)
   }
@@ -79,7 +79,6 @@ function RoleDropdown({ userId, currentRole, myRole, disabled }: {
     startTransition(() => changeUserRole(fd))
   }
 
-  // Zárja be görgetéskor is
   useEffect(() => {
     if (!open) return
     const close = () => setOpen(false)
@@ -106,9 +105,7 @@ function RoleDropdown({ userId, currentRole, myRole, disabled }: {
 
       {open && (
         <>
-          {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          {/* Panel — fixed, soha nem vágódik le */}
           <div
             className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden w-48 py-1"
             style={{ top: pos.top, left: pos.left }}
@@ -132,6 +129,42 @@ function RoleDropdown({ userId, currentRole, myRole, disabled }: {
         </>
       )}
     </>
+  )
+}
+
+function CompanyDropdown({ userId, currentCompanyId, companies }: {
+  userId: string
+  currentCompanyId: string | null
+  companies: { id: string; name: string }[]
+}) {
+  const [isPending, startTransition] = useTransition()
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const fd = new FormData()
+    fd.set('userId', userId)
+    fd.set('companyId', e.target.value)
+    startTransition(() => assignCompany(fd))
+  }
+
+  return (
+    <div className="relative">
+      {isPending && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+          <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin block" />
+        </div>
+      )}
+      <select
+        defaultValue={currentCompanyId ?? ''}
+        onChange={handleChange}
+        disabled={isPending}
+        className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all disabled:opacity-60 max-w-[180px] cursor-pointer"
+      >
+        <option value="">— Nincs cég —</option>
+        {companies.map(c => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
   )
 }
 
@@ -278,7 +311,7 @@ function DeleteConfirmModal({ email, onConfirm, onClose }: {
   )
 }
 
-export function AdminPanel({ users, myId, myRole }: Props) {
+export function AdminPanel({ users, myId, myRole, companies }: Props) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
   const [, startDeleteTransition] = useTransition()
@@ -300,11 +333,11 @@ export function AdminPanel({ users, myId, myRole }: Props) {
   }
 
   const stats = [
-    { label: 'Összesen',           value: users.length,                                                       color: 'text-slate-800',  bg: 'bg-white' },
-    { label: 'Admin',              value: users.filter(u => u.role === 'admin').length,                       color: 'text-rose-700',   bg: 'bg-rose-50' },
-    { label: 'Admin (olvasó)',     value: users.filter(u => u.role === 'admin_reader').length,                color: 'text-amber-700',  bg: 'bg-amber-50' },
-    { label: 'Felhasználó',        value: users.filter(u => u.role === 'user').length,                        color: 'text-blue-700',   bg: 'bg-blue-50' },
-    { label: 'Korl. felhasználó',  value: users.filter(u => u.role === 'limited_user').length,                color: 'text-slate-500',  bg: 'bg-slate-100' },
+    { label: 'Összesen',           value: users.length,                                           color: 'text-slate-800', bg: 'bg-white' },
+    { label: 'Admin',              value: users.filter(u => u.role === 'admin').length,           color: 'text-rose-700',  bg: 'bg-rose-50' },
+    { label: 'Admin (olvasó)',     value: users.filter(u => u.role === 'admin_reader').length,    color: 'text-amber-700', bg: 'bg-amber-50' },
+    { label: 'Felhasználó',        value: users.filter(u => u.role === 'user').length,            color: 'text-blue-700',  bg: 'bg-blue-50' },
+    { label: 'Korl. felhasználó',  value: users.filter(u => u.role === 'limited_user').length,   color: 'text-slate-500', bg: 'bg-slate-100' },
   ]
 
   return (
@@ -338,7 +371,6 @@ export function AdminPanel({ users, myId, myRole }: Props) {
       </div>
 
       {/* ── Tábla ── */}
-      {/* overflow-visible hogy a fixed dropdown ne legyen levágva */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible">
 
         <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100">
@@ -349,11 +381,14 @@ export function AdminPanel({ users, myId, myRole }: Props) {
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60">
-              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[38%]">Felhasználó</th>
-              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[12%]">Státusz</th>
-              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">Regisztrált</th>
-              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">Utolsó belépés</th>
-              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[14%] text-right">Szerepkör</th>
+              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[28%]">Felhasználó</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[10%]">Státusz</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[14%]">Regisztrált</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[14%]">Utolsó belépés</th>
+              <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">
+                <span className="flex items-center gap-1.5"><Building2 size={11} /> Cég</span>
+              </th>
+              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[16%] text-right">Szerepkör</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -401,6 +436,14 @@ export function AdminPanel({ users, myId, myRole }: Props) {
 
                   <td className="px-4 py-3.5 text-[12px] text-slate-400 font-medium tabular-nums">
                     {formatDate(u.last_sign_in)}
+                  </td>
+
+                  <td className="px-4 py-3.5">
+                    <CompanyDropdown
+                      userId={u.id}
+                      currentCompanyId={u.company_id}
+                      companies={companies}
+                    />
                   </td>
 
                   <td className="px-6 py-3.5">

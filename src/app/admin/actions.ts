@@ -97,3 +97,15 @@ export async function deleteUser(formData: FormData) {
 
   revalidatePath('/admin')
 }
+export async function assignCompany(formData: FormData) {
+  const supabase = await createClient()
+  const userId    = formData.get('userId') as string
+  const companyId = formData.get('companyId') as string || null
+
+  await supabase
+    .from('profiles')
+    .update({ company_id: companyId })
+    .eq('id', userId)
+
+  revalidatePath('/admin')
+}
