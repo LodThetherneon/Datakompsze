@@ -29,7 +29,9 @@ export function ActivityLog({ tableName, recordId }: Props) {
       .eq('record_id', recordId)
       .order('created_at', { ascending: false })
       .limit(10)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('ActivityLog hiba:', error)
+        console.log('ActivityLog adat:', data, 'tableName:', tableName, 'recordId:', recordId)
         setLogs(data ?? [])
         setLoading(false)
       })
