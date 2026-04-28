@@ -21,21 +21,24 @@ export function ActivityLog({ tableName, recordId }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('activity_log')
-      .select('id, action, user_email, created_at')
-      .eq('table_name', tableName)
-      .eq('record_id', recordId)
-      .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data, error }) => {
-        if (error) console.error('ActivityLog hiba:', error)
-        console.log('ActivityLog adat:', data, 'tableName:', tableName, 'recordId:', recordId)
-        setLogs(data ?? [])
-        setLoading(false)
-      })
-  }, [tableName, recordId])
+  const supabase = createClient()
+  supabase
+    .from('activity_log')
+    .select('id, action, user_email, created_at')
+    .eq('table_name', tableName)
+    .eq('record_id', recordId)
+    .order('created_at', { ascending: false })
+    .limit(20)
+    .then(({ data, error }) => {
+      if (error) console.error('ActivityLog hiba:', error)
+      const all = data ?? []
+      const created = all.filter(l => l.action === 'created' || l.action === 'INSERT')
+      const updates = all.filter(l => l.action === 'updated' || l.action === 'UPDATE').slice(0, 3)
+      // created mindig az alján legyen (legrégebbi)
+      setLogs([...updates, ...created])
+      setLoading(false)
+    })
+}, [tableName, recordId])
 
   if (loading) return null
   if (logs.length === 0) return null
