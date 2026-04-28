@@ -27,7 +27,7 @@ export function ActivityLog({ tableName, recordId }: Props) {
       .select('id, action, user_email, created_at')
       .eq('table_name', tableName)
       .eq('record_id', recordId)
-      .order('changed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => {
         setLogs(data ?? [])
