@@ -6,6 +6,7 @@ import {
   DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import { Pencil, Loader2, GitBranch } from 'lucide-react'
+import { ActivityLog } from '@/components/activity-log'
 
 type System = {
   id: string
@@ -118,6 +119,7 @@ export function SystemDetailDialog({ sys, website, updateAction, processName }: 
                   {sys.status === 'active' ? 'Elfogadva' : 'Jóváhagyandó'}
                 </span>
               </div>
+              <ActivityLog tableName="systems" recordId={sys.id} />
             </div>
           ) : (
             /* ── SZERKESZTŐ NÉZET ── */

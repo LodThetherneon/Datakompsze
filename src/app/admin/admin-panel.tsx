@@ -468,7 +468,7 @@ export function AdminPanel({ users, myId, myRole, companies }: Props) {
               <th className="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[18%]">
                 <span className="flex items-center gap-1.5"><Building2 size={11} /> Cég</span>
               </th>
-              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[16%] text-right">Szerepkör</th>
+              <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest w-[16%] text-right">Szerepkörök/Műveletek</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">

@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               autoComplete="username"
               placeholder="admin@ceg.hu"
               disabled={isPending}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all disabled:opacity-60"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-blue-400 transition-all disabled:opacity-60"
             />
           </div>
           <div>
@@ -72,18 +72,17 @@ export default function AdminLoginPage() {
               autoComplete="current-password"
               placeholder="••••••••"
               disabled={isPending}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all disabled:opacity-60"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all disabled:opacity-60"
             />
           </div>
           <button
             type="submit"
             disabled={isPending}
-            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-80 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-xl transition-all mt-2 flex items-center justify-center gap-2"
-          >
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group">
             {isPending ? (
               <><Spinner />Belépés folyamatban...</>
             ) : (
-              <><ArrowRight size={16} />Belépés</>
+              <><ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />Belépés</>
             )}
           </button>
         </form>

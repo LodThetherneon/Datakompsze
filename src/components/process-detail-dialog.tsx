@@ -6,6 +6,7 @@ import {
   DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import { Pencil, Loader2, Globe } from 'lucide-react'
+import { ActivityLog } from '@/components/activity-log'
 
 type Process = {
   id: string
@@ -100,6 +101,7 @@ export function ProcessDetailDialog({ proc, linkedWebsites, updateAction }: Prop
                   </div>
                 </div>
               )}
+              <ActivityLog tableName="data_processes" recordId={proc.id} />
             </div>
           ) : (
             /* ── SZERKESZTŐ NÉZET ── */

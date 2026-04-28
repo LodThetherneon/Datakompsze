@@ -46,7 +46,7 @@ export default async function AdminPage() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="w-full h-full flex flex-col space-y-8 font-sans">
       {/* companies prop hozzáadva  ← VÁLTOZOTT */}
       <AdminPanel users={users} myId={user!.id} myRole={role} companies={companies} />
     </div>

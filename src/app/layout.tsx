@@ -198,7 +198,7 @@ export default async function RootLayout({
                   <footer className="border-t border-slate-200 bg-white py-6 px-6 lg:px-12 xl:px-16 w-full">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-[13px] text-slate-500">
                       <div>
-                        &copy; 2026 <span className="font-bold text-slate-700">DataKomp</span>. Minden jog fenntartva.
+                        &copy; 2026 <span className="font-bold text-slate-700">Széchenyi István Egyetem</span>. Minden jog fenntartva.
                       </div>
                       <div className="flex gap-8 font-medium">
                         <a href="#" className="hover:text-emerald-600 transition-colors">Adatvédelmi tájékoztató</a>

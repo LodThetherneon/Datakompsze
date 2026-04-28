@@ -12,11 +12,7 @@ export default async function LoginPage({
 
   return (
     <div className="min-h-screen flex font-sans overflow-hidden">
-
-      {/* Bal oldal — zöldes branding */}
-      <div className="hidden lg:flex flex-col justify-between w-[60%] p-16 pl-20 relative bg-emerald-600 overflow-hidden">
-
-        {/* Háttér rétegek */}
+      <div className="hidden lg:flex flex-col justify-between w-[60%] p-16 pl-20 relative bg-blue-800 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-emerald-500/40 blur-[120px]" />
           <div className="absolute -bottom-40 right-0 w-[500px] h-[500px] rounded-full bg-emerald-800/50 blur-[100px]" />
@@ -27,8 +23,6 @@ export default async function LoginPage({
             }}
           />
         </div>
-
-        {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <img
             src="/szelogo-removebg-preview.png"
@@ -36,19 +30,14 @@ export default async function LoginPage({
             className="h-28 w-auto object-contain brightness-0 invert opacity-90"
           />
         </div>
-
-        {/* Közép tartalom */}
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-[46px] font-black text-white leading-[1.1] mb-5 tracking-tight">
             Adatvagyont & Adatvédelmet{' '}
-            <span className="text-emerald-200">kezelő rendszer</span>
+            <span className="text-blue-400">kezelő rendszer</span>
           </h1>
-
           <p className="text-emerald-100/80 text-[15px] leading-relaxed mb-10 [max-width:none]">
             Kezelje az adatvédelmi kötelezettségeit, adatvagyonát egyetlen platformon.
           </p>
-
-          {/* Feature kártyák */}
           <div className="grid grid-cols-2 gap-3">
             {[
               { icon: Map, label: 'Adattérkép', desc: 'Adatvagyon adatbázis' },
@@ -69,21 +58,18 @@ export default async function LoginPage({
           </div>
         </div>
 
-        <p className="relative z-10 text-emerald-100/50 text-[12px]">
+        <p className="relative z-10 text-white text-[12px]">
           © 2026 Széchenyi István Egyetem. Minden jog fenntartva.
         </p>
       </div>
 
-      {/* Jobb oldal — form panel, fehér */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white relative">
 
-        {/* Éles bal oldali árnyék/elválasztás */}
         <div className="hidden lg:block absolute left-0 inset-y-0 w-px bg-emerald-700/30" />
         <div className="hidden lg:block absolute left-0 inset-y-0 w-8 bg-gradient-to-r from-emerald-900/5 to-transparent" />
 
         <div className="w-full max-w-[390px]">
 
-          {/* Mobil logo */}
           <div className="lg:hidden flex items-center gap-2.5 mb-10 justify-center">
             <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
               <ShieldCheck size={18} className="text-white" />
@@ -91,12 +77,10 @@ export default async function LoginPage({
             <span className="text-xl font-black text-slate-800">Data<span className="text-emerald-500">Komp</span></span>
           </div>
 
-          {/* Form kártya */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-200/60">
             <LoginForm initialTab={tab} error={error} />
           </div>
 
-          {/* Lábléc */}
           <p className="text-center text-[11px] text-slate-400 mt-5">
             A belépéssel elfogadod az{' '}
             <a href="#" className="text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors">Adatvédelmi tájékoztatót</a>

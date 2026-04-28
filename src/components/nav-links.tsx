@@ -13,7 +13,7 @@ const navItems = [
   { href: '/settings',      label: 'Beállítások',         icon: Settings },
 ]
 
-const adminNavItem = { href: '/admin', label: 'Admin panel', icon: Shield }
+const adminNavItem = { href: '/admin', label: 'Felhasználók kezelése', icon: Shield }
 
 export function NavLinks({ role }: { role?: string }) {
   const pathname = usePathname()

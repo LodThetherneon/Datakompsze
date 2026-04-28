@@ -52,14 +52,14 @@ export async function addConnection(formData: FormData) {
     const cleanUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
     const { data: newSite, error } = await supabase
       .from('websites')
-      .insert([{ company_id: companyFull.id, url: cleanUrl, status: 'scanning' }])
+      .insert([{ company_id: companyFull.id, url: cleanUrl, status: 'scanning', created_by: user.id }])
       .select().single()
     if (error || !newSite) throw error
     runScanner(newSite.id, cleanUrl).catch(err => console.error('Scanner hiba:', err))
   } else if (mode === 'manual') {
     const name = formData.get('name') as string
     const { error } = await supabase.from('websites').insert([{
-      company_id: companyFull.id, url: name, status: 'offline'
+      company_id: companyFull.id, url: name, status: 'offline', created_by: user.id
     }])
     if (error) throw error
   }
@@ -103,6 +103,7 @@ export async function addManualSystem(formData: FormData) {
     source_type:       (formData.get('sourceType') as string) || 'manual',
     retention_until:   retentionUntilRaw,
     retention_display: retentionDisplay ?? null,
+    created_by:        user.id,
   }])
   if (error) throw error
 
@@ -133,8 +134,12 @@ export async function deleteSystem(formData: FormData) {
 
 export async function acceptSystem(formData: FormData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const id = formData.get('id') as string
-  const { error } = await supabase.from('systems').update({ status: 'active' }).eq('id', id)
+  const { error } = await supabase.from('systems').update({
+    status: 'active',
+    updated_by: user?.id ?? null,
+  }).eq('id', id)
   if (error) throw error
   revalidatePath('/systems')
 }
@@ -595,7 +600,8 @@ export async function generatePolicy(formData: FormData) {
     version:      newVersion,
     content_html: contentHtml,
     status:       'current',
-    valid_from:   new Date().toISOString()
+    valid_from:   new Date().toISOString(),
+    created_by:   user.id,
   }])
   if (error) throw error
 
@@ -728,7 +734,7 @@ export async function acceptAllPending() {
 
   const { error } = await supabase
     .from('systems')
-    .update({ status: 'active' })
+    .update({ status: 'active', updated_by: user.id })
     .in('website_id', websiteIds)
     .eq('status', 'pending')
 
@@ -746,6 +752,7 @@ export async function updateRetentionPeriod(id: string, value: string) {
 
 export async function updateSystem(formData: FormData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const id = formData.get('id') as string
   const { error } = await supabase
     .from('systems')
@@ -756,6 +763,7 @@ export async function updateSystem(formData: FormData) {
       retention_period: (formData.get('retention_period')  as string)?.trim() || undefined,
       storage_location: (formData.get('storage_location')  as string)?.trim() || undefined,
       department_name:  (formData.get('department_name')   as string)?.trim() || undefined,
+      updated_by: user?.id ?? null, 
     })
     .eq('id', id)
   if (error) throw error

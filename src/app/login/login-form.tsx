@@ -16,7 +16,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 outline-none transition-all"
+  const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none transition-all"
   const labelClass = "block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2"
 
   const Spinner = () => (
@@ -136,7 +136,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
                 await login(formData)
               })
             }}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all text-[14px] flex items-center justify-center gap-2 mt-1 group"
           >
             {isPending ? (
               <><Spinner />Belépés folyamatban...</>
@@ -149,7 +149,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             <button
               type="button"
               onClick={() => setTab('register')}
-              className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors"
+              className="text-blue-600 font-bold hover:text-blue-700 transition-colors"
             >
               Regisztráljon ingyen
             </button>
@@ -209,7 +209,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
             type="button"
             disabled={isPending}
             onClick={handleRegister}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-[14px] flex items-center justify-center gap-2 group"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all text-[14px] flex items-center justify-center gap-2 group"
           >
             {isPending ? (
               <><Spinner />Regisztráció folyamatban...</>
@@ -219,7 +219,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
           </button>
           <p className="text-center text-[12px] text-slate-400">
             Van már fiókod?{' '}
-            <button type="button" onClick={() => setTab('login')} className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors">
+            <button type="button" onClick={() => setTab('login')} className="text-blue-600 font-bold hover:text-blue-700 transition-colors">
               Jelentkezz be
             </button>
           </p>
