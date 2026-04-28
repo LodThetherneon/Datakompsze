@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               autoComplete="username"
               placeholder="admin@ceg.hu"
               disabled={isPending}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-blue-400 transition-all disabled:opacity-60"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all disabled:opacity-60"
             />
           </div>
           <div>

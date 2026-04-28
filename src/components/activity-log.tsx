@@ -34,7 +34,6 @@ export function ActivityLog({ tableName, recordId }: Props) {
       const all = data ?? []
       const created = all.filter(l => l.action === 'created' || l.action === 'INSERT')
       const updates = all.filter(l => l.action === 'updated' || l.action === 'UPDATE').slice(0, 3)
-      // created mindig az alján legyen (legrégebbi)
       setLogs([...updates, ...created])
       setLoading(false)
     })
