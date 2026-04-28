@@ -178,7 +178,7 @@ export function LoginForm({ initialTab, error }: { initialTab: string; error?: s
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Minimum 6 karakter"
+                placeholder="Minimum 8 karakter nagy & kisbetű"
                 className={inputClass + ' pr-11'}
                 disabled={isPending}
               />
